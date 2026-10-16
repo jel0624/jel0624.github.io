@@ -65,6 +65,9 @@ button { font: inherit; color: inherit; }
 .chap b { font-family: var(--mono); font-weight: 500; margin-right: 6px; color: var(--accent); }
 .note { font-size: 13px; color: var(--muted); max-width: 70ch; line-height: 1.5; margin: 0; }
 .note a { color: var(--accent); overflow-wrap: anywhere; text-underline-offset: 3px; }
+.credit { font-size: 11px; opacity: .3; transition: opacity .2s; }
+.credit a { color: inherit; }
+.credit:hover, .credit:focus-within { opacity: .75; }
 </style>
 <style>.byline a{color:var(--accent);text-decoration:none}.byline a:hover{text-decoration:underline;text-underline-offset:3px}</style>
 </head>
@@ -87,7 +90,6 @@ button { font: inherit; color: inherit; }
     <audio id="narr" src="narration.mp3" preload="auto"></audio>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
-  <p class="note">Curves and traces are schematic redrawings of the manuscript figures. Numbers quoted on screen (learning constants, discrimination, manipulation outcomes) come from the text. Sound is on by default: narration (synthetic voice, ElevenLabs) and music. Click the stage or press space to play or pause; press F or the corner button for full screen. The QR code at the end links to the preprint.</p>
   <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
 </div>
 
