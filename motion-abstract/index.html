@@ -228,8 +228,11 @@ const scenes = [
     T(label,X0,yc-110,{size:32,w:600,c:col,a:ap});
     for(let s=1;s<3;s++){const x=X0+(X1-X0)*s/3;line([[x,yc-80],[x,yc+80]],C.faint,3,ap,[8,8]);}
     ['session n','n+1','n+2'].forEach((l,i)=>T(l,X0+(X1-X0)*(i+.5)/3,yc+120,{f:MONO,size:22,c:C.mute,align:'center',a:ap}));
-    const pa=[],pb=[];for(let i=0;i<=300*sw;i++){const xs=i/300*3,v=fn(xs),x=X0+(X1-X0)*xs/3;pa.push([x,yc+60-120*v]);pb.push([x,yc+60-120*(1-v)]);}
-    if(pa.length>1){line(pb,C.B,5,ap);line(pa,C.A,5,ap);}
+    // one stretch per session: the traces break at each session boundary (the dotted lines)
+    const GAP=.06;let pa=[],pb=[];const flush=()=>{if(pa.length>1){line(pb,C.B,5,ap);line(pa,C.A,5,ap);}pa=[];pb=[];};
+    for(let i=0;i<=300*sw;i++){const xs=i/300*3;if(Math.abs(xs-Math.round(xs))<GAP&&xs>.5&&xs<2.5){flush();continue;}
+      const v=fn(xs),x=X0+(X1-X0)*xs/3;pa.push([x,yc+60-120*v]);pb.push([x,yc+60-120*(1-v)]);}
+    flush();
   };
   const dynA=xs=>{const p=xs+.5,k=Math.floor(p),f=p-k,cur=k%2===0?1:0;if(k<1)return cur;const prev=1-cur;return prev+(cur-prev)*ease(f/.12);};
   plot(450,'Stable task · contingency fixed',C.stable,()=>1,seg(u,3.4,4.2));
@@ -353,7 +356,10 @@ const scenes = [
   const x0=700,x1=1780,ym=640,amp=170;
   T('context signal before odor onset',x0,360,{size:28,w:600,a:ap});
   const blocks=6,trials=blocks*14+30,sw=lin(u,1.8,7.2);
-  for(let b=0;b<blocks;b++){const xa=x0+(x1-x0)*b*14/trials,xb=x0+(x1-x0)*(b+1)*14/trials;rect(xa,ym-amp-20,xb-xa,2*amp+40,b%2?C.B:C.A,ap*.13);}
+  // context blocks in their own colours (amber / teal), so they don't read as amygdala red or vHPC blue
+  const CTX=['#e3a63c','#2db8a8'];
+  for(let b=0;b<blocks;b++){const xa=x0+(x1-x0)*b*14/trials,xb=x0+(x1-x0)*(b+1)*14/trials;rect(xa,ym-amp-20,xb-xa,2*amp+40,CTX[b%2],ap*.24);rect(xa,ym-amp-20,xb-xa,5,CTX[b%2],ap*.9);}
+  [['A rewarded',CTX[0],1440],['B rewarded',CTX[1],1620]].forEach(([l,c,lx])=>{rect(lx,342,18,18,c,ap*.9,4);T(l,lx+28,358,{size:22,c:C.ink,a:ap});});
   const ltx=x0+(x1-x0)*(blocks*14)/trials;
   rect(ltx,ym-amp-20,x1-ltx,2*amp+40,'#ffffff',ap*.04);
   line([[x0,ym],[x1,ym]],C.faint,2,ap,[8,8]);T('midpoint',x1,ym-10,{f:SANS,size:22,c:C.mute,align:'right',a:ap});
@@ -385,6 +391,7 @@ const scenes = [
   [[422,584],[436,656]].forEach(([gx,gy])=>{const g=ctx.createRadialGradient(gx,gy,4,gx,gy,70);g.addColorStop(0,'rgba(255,138,92,.55)');g.addColorStop(1,'rgba(255,138,92,0)');ctx.save();ctx.globalAlpha*=glow;ctx.fillStyle=g;ctx.beginPath();ctx.arc(gx,gy,70,0,Math.PI*2);ctx.fill();ctx.restore();});
   circle(150,838,8,VHPC,ba);T('ventral hippocampus',166,846,{size:22,c:'#1a1f2b',a:ba});
   circle(390,838,8,AMY,ba);T('amygdala',406,846,{size:22,c:'#1a1f2b',a:ba});
+  T('two regions previously implicated in context representation',120,914,{size:25,c:'#b4bccd',a:ba});
   // predictions, then the amygdala result
   const c1=1180,c2=1500,ha=seg(u,5,6);
   T('initial learning',c1,540,{size:28,w:600,c:C.stable,align:'center',a:ha});T('plasticity-based',c1,574,{size:22,c:C.mute,align:'center',a:ha});
@@ -494,7 +501,11 @@ const scenes = [
   T('task 1',1115,950,{size:30,w:600,c:C.stable,align:'center',a:ca});T('task 2',1435,950,{size:30,w:600,c:C.dyn,align:'center',a:ca});
   T('young',1700,440,{size:30,w:600,c:Y,a:ca});T('old',1700,482,{size:30,w:600,c:O,a:ca});
   const sa=seg(u,6,6.6);line([[1380,382],[1490,382]],C.ink,3,sa);T('**',1435,372,{size:36,w:600,align:'center',a:sa});T('p = 0.006',1520,392,{size:26,c:C.ink,a:sa});
-  caption('Old mice match young mice on a fixed discrimination, but drop toward chance on serial reversals.',u,7);
+  // the take-home, with the last sentence of the narration
+  const ca2=seg(u,7,7.8);T('Aged mice may be specifically impaired at ',120,1014,{size:32,c:C.ink,a:ca2});
+  ctx.save();ctx.font=`400 32px ${SANS}`;const mw=ctx.measureText('Aged mice may be specifically impaired at ').width;ctx.restore();
+  T('meta-learning',120+mw,1014,{size:32,w:600,c:C.dyn,a:ca2});ctx.save();ctx.font=`600 32px ${SANS}`;const mw2=ctx.measureText('meta-learning').width;ctx.restore();
+  T(', not simple value learning.',120+mw+mw2,1014,{size:32,c:C.ink,a:ca2});
 }},
 { name:'Takeaways', dur:13, draw(u){
   T('In short',120+(1-seg(u,0,.6))*20,176,{f:DISP,size:66,a:seg(u,0,.6)});
@@ -504,22 +515,22 @@ const scenes = [
   pts.forEach(([s],i)=>{const a=seg(u,.3+i*.35,.9+i*.35),y=330+i*110;
     T(String(i+1),120,y,{f:DISP,size:56,c:C.dyn,a});T(s,190,y-6,{size:30,a});});
   // aging, with the narration
-  const na=seg(u,4.6,5.4);
+  const na=seg(u,4.2,5.0);   // with 'aging may block that shift'
   rect(120,690,1060,4,C.A,na,2);
   T('Aging may block the shift',120,770,{f:DISP,size:52,a:na});
   T('to persistent activity',120,836,{f:DISP,size:52,it:true,c:C.A,a:na});
   // the paper
-  const qa=seg(u,2.4,3.4);
+  const qa=seg(u,6,7);       // with 'to find out more, check out the bioRxiv preprint'
   qr(1380,300,400,qa);
   T('Read the preprint',1580,760,{size:32,w:600,align:'center',a:qa});
   T('bioRxiv · doi 10.64898/2025.11.30.691382',1580,800,{size:22,c:C.mute,align:'center',a:qa});
   T('click or scan',1580,834,{size:20,c:C.dyn,align:'center',a:qa});
-  T('Lee, Hennig, Frelih, Gershman & Uchida · Center for Brain Science, Harvard University',120,1010,{size:24,c:C.mute,a:seg(u,3,4)});
-  T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,3,4)});
+  T('Lee, Hennig, Frelih, Gershman & Uchida · Center for Brain Science, Harvard University',120,1010,{size:24,c:C.mute,a:seg(u,7,8)});
+  T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,7,8)});
 }}];
 // narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
-const NARR=[{"dur": 7.67, "sent": [0.5, 3.4]}, {"dur": 19.18, "sent": [0.5, 2.87, 6.09, 11.8, 15.14]}, {"dur": 18.21, "sent": [0.5, 2.52, 6.11, 8.91, 13.13, 15.97]}, {"dur": 12.63, "sent": [0.5, 2.39, 7.35]}, {"dur": 31.44, "sent": [0.5, 6.14, 8.45, 13.38, 17.62, 22.18, 28.34]}, {"dur": 26.18, "sent": [0.5, 2.17, 7.18, 8.82, 18.25, 22.12]}, {"dur": 14.2, "sent": [0.5, 6.84, 9.42]}, {"dur": 22.04, "sent": [0.5, 2.69, 18.79]}, {"dur": 13.37, "sent": [0.5, 3.6, 5.32, 9.94]}, {"dur": 13.91, "sent": [0.5, 6.42]}, {"dur": 11.03, "sent": [0.5, 6.62]}, {"dur": 14.93, "sent": [0.5]}];
-const CUES=[[0, 0.6], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0, 1.0, 2.0, 2.6, 3.0, 7.4, 11], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4], [0.5, 4.0, 6.2], [0.5, 2.6, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6], [0.5]];
+const NARR=[{"dur": 7.67, "sent": [0.5, 3.4]}, {"dur": 19.18, "sent": [0.5, 2.87, 6.09, 11.8, 15.14]}, {"dur": 18.21, "sent": [0.5, 2.52, 6.11, 8.91, 13.13, 15.97]}, {"dur": 12.63, "sent": [0.5, 2.39, 7.35]}, {"dur": 31.44, "sent": [0.5, 6.14, 8.45, 13.38, 17.62, 22.18, 28.34]}, {"dur": 26.18, "sent": [0.5, 2.17, 7.18, 8.82, 18.25, 22.12]}, {"dur": 14.2, "sent": [0.5, 6.84, 9.42]}, {"dur": 25.86, "sent": [0.5, 2.7, 12.41, 22.14]}, {"dur": 13.37, "sent": [0.5, 3.6, 5.32, 9.94]}, {"dur": 13.91, "sent": [0.5, 6.42]}, {"dur": 16.84, "sent": [0.5, 6.24, 9.52]}, {"dur": 20.7, "sent": [0.5, 7.89]}];
+const CUES=[[0, 0.6], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0, 1.0, 2.0, 2.6, 3.0, 7.4, 11], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
 let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
   const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
 const DUR=acc,OUTRO=2.5;
@@ -562,7 +573,7 @@ function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t
 window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
 // the QR code on the closing slide is also a link to the preprint
 const PAPER='https://www.biorxiv.org/content/10.64898/2025.11.30.691382',stage=document.getElementById('stage');
-function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+3.5)return false;const r=cv.getBoundingClientRect();
+function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+NARR[NARR.length-1].sent[1]+.5)return false;const r=cv.getBoundingClientRect();
   const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;return x>=1380&&x<=1780&&y>=300&&y<=845;}
 playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}toggle();};
 stage.onmousemove=e=>{stage.style.cursor=overQR(e)?'pointer':'';};
