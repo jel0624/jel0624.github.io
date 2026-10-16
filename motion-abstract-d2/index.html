@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stop Pathway, Switch Pathway · motion abstract</title>
+<meta name="description" content="Animated summary: the striatal indirect pathway drives exploration through competition between the two superior colliculi. Lee & Sabatini, Nature (2021). Music by Vincent Rubinetti.">
+<meta property="og:title" content="Stop Pathway, Switch Pathway · motion abstract">
+<meta property="og:description" content="Animated summary: the striatal indirect pathway drives exploration through competition between the two superior colliculi. Lee & Sabatini, Nature (2021). Music by Vincent Rubinetti.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jel0624.github.io/motion-abstract-d2/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<style>
+/* Layout: a single 16:9 film stage, transport bar under it, chapter list as a timeline strip. Stage is always dark (screening room); page chrome follows the theme. */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --fg: #151a26;
+  --muted: #5b6377;
+  --line: #d8dce5;
+  --accent: #1f8fbf;
+  --display: "Newsreader", Georgia, serif;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0a0d15; --surface: #121725; --fg: #e8ebf2; --muted: #98a0b3; --line: #262d3f; --accent: #6cc8ef; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0a0d15; --surface: #121725; --fg: #e8ebf2; --muted: #98a0b3; --line: #262d3f; --accent: #6cc8ef; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+.byline { margin: 0; font-size: 15px; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 em { color: var(--accent); }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; background: #0e1320; border-radius: 6px; overflow: hidden; cursor: pointer; }
+canvas { display: block; width: 100%; height: 100%; }
+.transport { display: flex; align-items: center; gap: 12px; }
+button { font: inherit; color: inherit; }
+#play { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
+#play:focus-visible, .chap:focus-visible, #volume:focus-visible, #scrub:focus-visible, .bigplay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px 14px 20px; border: 0; border-radius: 999px; background: #f5f6f9; color: #0e1320; font: 600 clamp(15px, 2.2vw, 20px)/1 var(--sans); cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.45); transition: transform .15s ease-out; }
+.bigplay:hover { transform: translate(-50%, -50%) scale(1.04); }
+/* full screen: the stage letterboxes the 16:9 film on black; .is-full is the fallback where the Fullscreen API is missing (iPhone) */
+.iconbtn { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--fg); }
+.iconbtn svg, .fsx svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn:focus-visible, .fsx:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage:fullscreen, .stage.is-full { width: 100%; height: 100%; aspect-ratio: auto; max-width: none; border-radius: 0; background: #000; display: grid; place-items: center; }
+.stage.is-full { position: fixed; inset: 0; z-index: 1000; height: 100dvh; }
+.stage:fullscreen canvas, .stage.is-full canvas { width: min(100vw, calc(100dvh * 16 / 9)); height: auto; aspect-ratio: 16 / 9; }
+.fsx { display: none; position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(245,246,249,.14); color: #f5f6f9; cursor: pointer; place-items: center; }
+.fsx:hover { background: rgba(245,246,249,.26); }
+.stage:fullscreen .fsx, .stage.is-full .fsx { display: grid; }
+.bigplay svg { width: 1em; height: 1em; fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .bigplay { transition: none; } }
+#play svg { width: 14px; height: 14px; fill: var(--fg); }
+#scrub { flex: 1; min-width: 0; accent-color: var(--accent); }
+/* volume: speaker button mutes, the slider sets the level (hidden on narrow screens, where the device keys do it) */
+.vol { flex: none; display: flex; align-items: center; gap: 6px; }
+#volume { width: 84px; margin: 0; accent-color: var(--accent); }
+#volicon .spk { fill: currentColor; }
+@media (max-width: 600px) { #volume { display: none; } }
+#time { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chap { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); }
+.chap[aria-current="true"] { color: var(--fg); border-color: var(--accent); }
+.chap b { font-family: var(--mono); font-weight: 500; margin-right: 6px; color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); max-width: 70ch; line-height: 1.5; margin: 0; }
+.note a { color: var(--accent); overflow-wrap: anywhere; text-underline-offset: 3px; }
+.credit { font-size: 11px; opacity: .3; transition: opacity .2s; }
+.credit a { color: inherit; }
+.credit:hover, .credit:focus-within { opacity: .75; }
+</style>
+<style>.byline a{color:var(--accent);text-decoration:none}.byline a:hover{text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Striatal indirect pathway mediates exploration via <em>collicular competition</em></h1>
+    <p class="byline">Lee &amp; Sabatini · Nature (2021) · motion abstract · <a href="https://doi.org/10.1038/s41586-021-04055-4">paper</a> · <a href="/">Jaeeon Lee</a></p>
+  </header>
+  <div class="stage" id="stage"><canvas id="cv" width="1920" height="1080" aria-label="Animated summary of the paper"></canvas>
+    <button id="fsx" class="fsx" aria-label="Exit full screen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg></button>
+    <button id="bigplay" class="bigplay" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.8 8z"/></svg>Play with sound</button></div>
+  <div class="transport">
+    <button id="play" aria-label="Pause"><svg viewBox="0 0 14 14" id="icon"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg></button>
+    <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Seek">
+    <span id="time">0:00 / 0:00</span>
+    <div class="vol"><button id="sound" class="iconbtn" aria-label="Mute" title="Mute (M)"><svg viewBox="0 0 16 16" aria-hidden="true" id="volicon"></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
+    <button id="fs" class="iconbtn" aria-label="Full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+    <audio id="narr" src="narration.mp3" preload="auto"></audio>
+  </div>
+  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+  <p class="note">Schematic summary of Lee &amp; Sabatini, <a href="https://doi.org/10.1038/s41586-021-04055-4">Nature 2021</a>: numbers on screen come from the paper; bar heights and traces are drawn approximately from its figures. Narration is a synthetic voice. Click the stage or press space to play or pause; F for full screen, M to mute.</p>
+  <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let SC = 1; // backing-store scale: the film is authored at 1920x1080 and drawn at the screen's pixel density (up to 2x)
+const W = 1920, H = 1080;
+const C = { bg:'#0e1320', ink:'#eef0f5', mute:'#8f98ad', faint:'#273049', grid:'#1b2234',
+  A:'#f0544f', B:'#4592dc', stable:'#3fbf78', dyn:'#bd63d1', pink:'#ef5f9f', warn:'#ff8a5c',
+  // paper colours: left licks blue, right licks red; outcomes correct grey / incorrect green / miss orange; laser light blue
+  L:'#4592dc', R:'#f0544f', ispn:'#ef5f9f', dspn:'#3fbf78', sc:'#bd63d1', laser:'#7fd3ff', cor:'#b8bfcc', inc:'#3fbf78', miss:'#f5a142', jaws:'#ff8a5c' };
+const DISP = '"Newsreader", Georgia, serif', SANS = '"IBM Plex Sans", system-ui, sans-serif', MONO = '"IBM Plex Mono", monospace';
+
+// ---------- helpers ----------
+const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease = x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;};
+const seg = (u,a,b)=>ease((u-a)/(b-a));
+const lin = (u,a,b)=>clamp((u-a)/(b-a));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const rnd = i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+function T(s,x,y,o={}){ctx.save();ctx.globalAlpha*=(o.a??1);
+  ctx.font=`${o.it?'italic ':''}${o.w||400} ${o.size||36}px ${o.f||SANS}`;
+  ctx.fillStyle=o.c||C.ink;ctx.textAlign=o.align||'left';ctx.textBaseline=o.base||'alphabetic';
+  ctx.letterSpacing=(o.ls||0)+'px';ctx.fillText(s,x,y);ctx.restore();}
+function line(pts,color,w=4,a=1,dash=null){ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineJoin='round';ctx.lineCap='round';
+  if(dash)ctx.setLineDash(dash);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();}
+function rect(x,y,w,h,fill,a=1,r=0){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();ctx.restore();}
+function circle(x,y,r,fill,a=1,stroke=null,sw=3){ctx.save();ctx.globalAlpha*=a;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();} ctx.restore();}
+function drop(x,y,s,a=1){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#6cc3ef';ctx.beginPath();
+  ctx.moveTo(x,y-s);ctx.bezierCurveTo(x+s*.9,y-s*.1,x+s*.75,y+s*.75,x,y+s*.75);ctx.bezierCurveTo(x-s*.75,y+s*.75,x-s*.9,y-s*.1,x,y-s);ctx.fill();ctx.restore();}
+function cross(x,y,s,a=1){line([[x-s,y-s],[x+s,y+s]],C.A,6,a);line([[x-s,y+s],[x+s,y-s]],C.A,6,a);}
+// arrowhead scales with the stroke, and the shaft stops inside the head so its round cap never pokes past the tip
+function arrow(x1,y1,x2,y2,color,w=4,a=1,p=1){const ang=Math.atan2(y2-y1,x2-x1),c=Math.cos(ang),s=Math.sin(ang),head=p>.95;
+  const h=Math.max(16,w*3.2),hw=Math.max(8,w*1.9),len=Math.hypot(x2-x1,y2-y1)*p,back=head?Math.min(h*.6,len):0;
+  const x=x1+c*(len-back),y=y1+s*(len-back);if(len-back>0)line([[x1,y1],[x,y]],color,w,a);
+  if(head){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*c+hw*s,y2-h*s-hw*c);ctx.lineTo(x2-h*c-hw*s,y2-h*s+hw*c);ctx.closePath();ctx.fill();ctx.restore();}}
+function header(n,eyebrow,title,u,titleIt=null){
+  const a=seg(u,0,.6);
+  T(title,120+(1-a)*20,176,{f:DISP,size:66,a});
+  if(titleIt){ctx.save();ctx.font=`400 66px ${DISP}`;const w=ctx.measureText(title).width;ctx.restore();
+    T(titleIt.s,120+(1-a)*20+w,176,{f:DISP,size:66,it:true,c:titleIt.c,a});}
+}
+function caption(s,u,at=1,y=1000){T(s,120,y,{size:30,c:C.mute,a:seg(u,at,at+.8)});}
+function chip(x,y,label,kind,a){ // kind: impaired | spared | mild
+  ctx.save();ctx.globalAlpha*=a;const w=230,h=56;
+  if(kind==='impaired'){rect(x-w/2,y-h/2,w,h,C.warn,1,28);T(label,x,y+2,{align:'center',base:'middle',size:28,w:600,c:'#1a1210'});}
+  else if(kind==='mild'){ctx.strokeStyle=C.warn;ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.warn});}
+  else if(kind==='pred'){ctx.strokeStyle=C.mute;ctx.lineWidth=2.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.mute});}
+  else {ctx.strokeStyle=C.mute;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.ink});}
+  ctx.restore();}
+
+const artReady=Promise.resolve();
+const QR=["11111110111011010100101111111", "10000010010111000011001000001", "10111010011000011101001011101", "10111010100101010000101011101", "10111010110101010110101011101", "10000010110111101101101000001", "11111110101010101010101111111", "00000000100100010110000000000", "10001011110100110101011111001", "11010000111101010000101111111", "00011011001110110000100110001", "00011001000000111110000011011", "11100111111110101111010000010", "10011000001101010000111011111", "11100011010000111110011001101", "01011100001100101101110110011", "00100110110110101110110000010", "11110001001010110000101111011", "00100011100010111100001010101", "00110101000110111110000010011", "11010110000110101111111111001", "00000000110101010000100010001", "11111110110000110111101011101", "10000010010100010110100010010", "10111010111101110111111111001", "10111010011001110100100000001", "10111010011110111100010001111", "10000010001000100101100101011", "11111110101100101111111111010"];
+function img(k,x,y,s,a){const im=ART[k];if(!im||!im.width)return;ctx.save();ctx.globalAlpha*=a;ctx.drawImage(im,x-im.width*s/2,y-im.height*s/2,im.width*s,im.height*s);ctx.restore();}
+// a figure inset on a paper-white card (the PDF2 renders have a white background)
+function card(x,y,w,h,a){ctx.save();ctx.globalAlpha*=a;ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=30;ctx.shadowOffsetY=10;rect(x,y,w,h,'#fefefe',1,14);ctx.restore();}
+function qr(x,y,size,a){const n=QR.length,q=4,m=size/(n+2*q);card(x,y,size,size,a);ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#0e1320';
+  QR.forEach((row,i)=>{for(let j=0;j<n;j++)if(row[j]==='1')ctx.fillRect(x+(j+q)*m,y+(i+q)*m,m+.5,m+.5);});ctx.restore();}
+
+// ---------- scenes ----------
+// D2 film scenes (Lee & Sabatini, Nature 2021). v6: every scene is a schematic drawn in canvas (Jay: the real figure panels were
+// too much). Numbers on screen come from the paper; bar heights and traces are schematic, read approximately off the figures.
+// Each draw(u) runs on its visual clock; CUES (in assemble.py) pin each narration sentence to a visual time.
+
+// ---------- small drawing helpers ----------
+// inhibitory connection: line ending in a flat bar
+function inhib(x1,y1,x2,y2,color,w=4,a=1,p=1){const x=lerp(x1,x2,p),y=lerp(y1,y2,p);line([[x1,y1],[x,y]],color,w,a);
+  if(p>.95){const ang=Math.atan2(y2-y1,x2-x1)+Math.PI/2,h=18;line([[x2-h*Math.cos(ang),y2-h*Math.sin(ang)],[x2+h*Math.cos(ang),y2+h*Math.sin(ang)]],color,w+2,a);}}
+function ellipse(x,y,rx,ry,fill,a=1,stroke=null,sw=3){ctx.save();ctx.globalAlpha*=a;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}ctx.restore();}
+function glow(x,y,r,col,a){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);ctx.restore();}
+function pill(x,y,label,col,a,sub=null){if(a<=0)return 0;ctx.save();ctx.font=`600 28px ${SANS}`;const w=ctx.measureText(label).width+52;ctx.restore();
+  rect(x,y-30,w,60,col,a,30);T(label,x+w/2,y+2,{align:'center',base:'middle',size:28,w:600,c:'#0e1320',a});
+  if(sub)T(sub,x+w+20,y+10,{size:26,c:C.mute,a});return w;}
+// text with coloured runs: parts = [[text, colour, italic?], ...]
+function runs(parts,x,y,o={}){let cx=x;parts.forEach(([s,c,it])=>{const f=`${it?'italic ':''}${o.w||400} ${o.size||36}px ${o.f||SANS}`;
+  T(s,cx,y,{...o,c:c||o.c||C.ink,it});ctx.save();ctx.font=f;cx+=ctx.measureText(s).width;ctx.restore();});}
+const mixC=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);return'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*clamp(t))).join(',')+')';};
+function xmark(x,y,s,col,a,p=1){if(a<=0)return;const p1=clamp(p*2),p2=clamp(p*2-1);line([[x-s,y-s],[x-s+2*s*p1,y-s+2*s*p1]],col,7,a);if(p2>0)line([[x+s,y-s],[x+s-2*s*p2,y-s+2*s*p2]],col,7,a);}
+
+// a schematic mouse head seen from above, nose up; lickSide -1 left / +1 right, lickP 0..1 tongue reach
+function mouseTop(x,y,s,a,lickSide=0,lickP=0){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#2a3350';ctx.strokeStyle='#9aa3b8';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x,y-s*1.1);ctx.bezierCurveTo(x+s*.55,y-s*.9,x+s*.75,y+s*.2,x+s*.6,y+s*.8);ctx.lineTo(x-s*.6,y+s*.8);
+  ctx.bezierCurveTo(x-s*.75,y+s*.2,x-s*.55,y-s*.9,x,y-s*1.1);ctx.fill();ctx.stroke();
+  [-1,1].forEach(d=>{ctx.beginPath();ctx.ellipse(x+d*s*.55,y+s*.15,s*.26,s*.34,d*.4,0,Math.PI*2);ctx.fill();ctx.stroke();});
+  ctx.restore();[-1,1].forEach(d=>circle(x+d*s*.22,y-s*.45,s*.06,C.ink,a));
+  // whiskers
+  [-1,1].forEach(d=>{for(let k=0;k<3;k++)line([[x+d*s*.12,y-s*.95],[x+d*s*(.55+k*.06),y-s*(1.05-k*.12)]],'#6b7488',1.6,a*.8);});
+  if(lickSide&&lickP>0){const tx=x+lickSide*s*.38*lickP,ty=y-s*1.1-s*.32*lickP;line([[x,y-s*1.08],[tx,ty]],'#e7a0b0',s*.09,a);}
+  circle(x,y-s*1.08,s*.07,'#e7a0b0',a);}
+function spout(x,y,col,a,lit=0){if(a<=0)return;rect(x-13,y-80,26,100,'#3a4566',a,5);rect(x-13,y+10,26,12,col,a,3);if(lit>0)glow(x,y+16,46,col,a*lit*.6);}
+
+// grouped bars: cats [[label, colour]], vals [[no stim per cat], [stim per cat]]; pa/pb grow each set; em(i,set) emphasis 0..1
+function bars(x0,yb,H,cats,vals,pa,pb,a,em=null,names=['no stim','stim'],sc=C.laser){if(a<=0)return;const gw=180,bw=64;
+  line([[x0-20,yb],[x0+cats.length*gw,yb]],C.mute,3,a);line([[x0-20,yb],[x0-20,yb-H-10]],C.mute,3,a);
+  T('100',x0-32,yb-H+8,{f:MONO,size:20,c:C.mute,align:'right',a});T('0',x0-32,yb+8,{f:MONO,size:20,c:C.mute,align:'right',a});
+  ctx.save();ctx.translate(x0-78,yb-H/2);ctx.rotate(-Math.PI/2);T('% of trials',0,0,{size:22,c:C.mute,align:'center',a});ctx.restore();
+  cats.forEach(([l,c],i)=>{const x=x0+i*gw;
+    [[0,pa],[1,pb]].forEach(([k,p])=>{if(p<=0)return;const e=em?em(i,k):1,h=H*vals[k][i]*ease(p);
+      rect(x+k*(bw+10),yb-h,bw,h,k?c:'#5b6377',a*(k?.95:.85)*lerp(.28,1,e),4);
+      if(k&&h>2){ctx.save();ctx.globalAlpha*=a*lerp(.28,1,e);ctx.strokeStyle=sc;ctx.lineWidth=3;ctx.strokeRect(x+k*(bw+10),yb-h,bw,h);ctx.restore();}});
+    T(l,x+bw+5,yb+40,{size:26,w:600,c,align:'center',a});});
+  const lx=x0+cats.length*gw-20;rect(lx-160,yb-H-6,22,22,'#5b6377',a*.85,4);T(names[0],lx-128,yb-H+12,{size:22,c:C.mute,a});
+  rect(lx-160,yb-H+30,22,22,sc,a*pb,4);T(names[1],lx-128,yb-H+48,{size:22,c:sc,a:a*pb});}
+
+// a PSTH-like trace on a small axis: fn(f) -> 0..1 over f in 0..1; band [f0,f1] shades the laser window
+function trace(x0,x1,yb,h,fn,col,lw,a,p=1){if(a<=0||p<=0)return;const pts=[];const n=Math.round(120*p);
+  for(let i=0;i<=n;i++){const f=i/120;pts.push([lerp(x0,x1,f),yb-h*fn(f)]);}if(pts.length>1)line(pts,col,lw,a);}
+function axes(x0,x1,yb,h,a,band=null,bandCol=C.laser){if(a<=0)return;if(band)rect(lerp(x0,x1,band[0]),yb-h-6,(x1-x0)*(band[1]-band[0]),h+6,bandCol,a*.16,3);
+  line([[x0,yb-h],[x0,yb],[x1,yb]],C.mute,2.5,a);}
+
+// ---------- neurons ----------
+// a spiny projection neuron, drawn like a fluorescence image: soma, 6 primary dendrites that branch twice and taper,
+// spines along the branches, and an axon (path) that leaves toward its target. grow (0..1) extends the arbor from the soma,
+// ax (0..1) draws the axon; a spike runs down the axon every 2.6 s once it is drawn.
+const NEURON={};
+function neuronTree(seed){if(NEURON[seed])return NEURON[seed];let k=seed*97;const R=()=>rnd(k++),segs=[];
+  const build=(x,y,ang,len,w,d)=>{const pts=[[x,y]],n=Math.max(3,Math.round(len/6));let px=x,py=y,a=ang;
+    for(let i=0;i<n;i++){a+=(R()-.5)*.38;px+=Math.cos(a)*len/n;py+=Math.sin(a)*len/n;pts.push([px,py]);}
+    const sp=[];if(d>=1)for(let i=1;i<pts.length;i++){if(R()<.85){const [x0,y0]=pts[i-1],[x1,y1]=pts[i],t=R(),side=R()<.5?-1:1;
+      const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||1,bx=x0+dx*t,by=y0+dy*t,sl=3+R()*4;
+      sp.push([bx,by,bx-dy/L*sl*side,by+dx/L*sl*side]);}}
+    segs.push({pts,w0:w,w1:w*.62,d,sp});
+    if(d<2){const b=.32+R()*.32;build(px,py,a-b,len*(.62+R()*.2),w*.62,d+1);build(px,py,a+b,len*(.62+R()*.2),w*.62,d+1);}};
+  const n0=6,off=R()*6.28;for(let i=0;i<n0;i++)build(0,0,off+i*6.28/n0+(R()-.5)*.5,46+R()*30,5.2,0);
+  return NEURON[seed]=segs;}
+function neuron(x,y,seed,col,a,grow,S,u,axon=null,ax=0){if(a<=0)return;const segs=neuronTree(seed);
+  ctx.save();ctx.globalAlpha*=a;ctx.translate(x,y);ctx.scale(S,S);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineCap='round';
+  segs.forEach(sg=>{const f=clamp(grow*3-sg.d);if(f<=0)return;const n=sg.pts.length-1,m=Math.max(1,Math.round(n*f));
+    for(let i=1;i<=m;i++){ctx.lineWidth=lerp(sg.w0,sg.w1,i/n);ctx.beginPath();ctx.moveTo(...sg.pts[i-1]);ctx.lineTo(...sg.pts[i]);ctx.stroke();}
+    ctx.lineWidth=1.1;const sm=Math.round(sg.sp.length*f);for(let i=0;i<sm;i++){const [bx,by,hx,hy]=sg.sp[i];
+      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(hx,hy);ctx.stroke();ctx.beginPath();ctx.arc(hx,hy,1.7,0,Math.PI*2);ctx.fill();}});
+  ctx.save();ctx.shadowColor=col;ctx.shadowBlur=24;ctx.beginPath();
+  for(let i=0;i<=24;i++){const t=i/24*6.28,r=15*(1+.12*Math.sin(t*3+seed));i?ctx.lineTo(r*Math.cos(t),r*Math.sin(t)*.88):ctx.moveTo(r,0);}
+  ctx.fill();ctx.restore();circle(-3,-3,5,'#ffffff',.35);
+  ctx.restore();
+  if(axon&&ax>0&&a>0){const P=[[x+14*S,y+4*S],...axon],L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
+    const at=d=>{let i=1;while(i<P.length-1&&L[i]<d)i++;const t=(d-L[i-1])/(L[i]-L[i-1]||1);return[lerp(P[i-1][0],P[i][0],t),lerp(P[i-1][1],P[i][1],t)];};
+    const D=L[L.length-1]*ax,pts=[];for(let d=0;d<=D;d+=6)pts.push(at(d));pts.push(at(D));line(pts,col,2.2,a*.9);
+    if(ax>=1){const ph=(u%2.6)/2.6;if(ph<.5)glow(...at(L[L.length-1]*ph*2),26,'rgba(255,255,255,0.9)',a*.8);}}
+}
+// two collicular hemispheres (a dome of firing neurons each), optional mutual-inhibition arcs and Jaws light on the right dome.
+// act = [left, right] activity (0..1, ~0.45 baseline). S scales the whole drawing about (cx, cy).
+function colliculi(cx,cy,u,ap,act,ip=0,jaws=0,S=1,labels=['left lSC','right lSC']){if(ap<=0)return;const dx=210,R=[[cx-dx,cy],[cx+dx,cy]];
+  ctx.save();ctx.translate(cx,cy);ctx.scale(S,S);ctx.translate(-cx,-cy);
+  line([[cx,cy-170],[cx,cy+90]],'#3a4566',2,ap,[6,8]);
+  if(jaws>0){ctx.save();ctx.globalAlpha*=ap*jaws;const [x,y]=R[1],g=ctx.createLinearGradient(x+120,cy-200,x,y);g.addColorStop(0,'rgba(255,170,90,.75)');g.addColorStop(1,'rgba(255,138,92,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x+128,cy-196);ctx.lineTo(x-70,y+30);ctx.lineTo(x+90,y+40);ctx.closePath();ctx.fill();ctx.restore();
+    line([[x+170,cy-250],[x+128,cy-196]],'#c9cdd8',9,ap*jaws);}
+  R.forEach(([x,y],h)=>{const lv=act[h];
+    ctx.save();ctx.globalAlpha*=ap;const g=ctx.createRadialGradient(x,y-20,10,x,y,170);
+    g.addColorStop(0,mixC('#1c2238','#5c2f6c',lv*1.2));g.addColorStop(1,'#141a2b');ctx.fillStyle=g;ctx.strokeStyle=mixC('#5a4a78','#d79bea',lv);ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(x-150,y+40);ctx.bezierCurveTo(x-150,y-120,x+150,y-120,x+150,y+40);ctx.quadraticCurveTo(x,y+70,x-150,y+40);ctx.fill();ctx.stroke();ctx.restore();
+    if(lv>.6)glow(x,y-20,190,'rgba(240,84,79,0.8)',ap*(lv-.6)*1.6);
+    for(let i=0;i<7;i++){const nx=x+(i-3)*36+(rnd(i+h*9)-.5)*14,ny=y-6+Math.abs(i-3)*2-(rnd(i+20+h*9))*50;
+      const rate=.6+lv*5.5,ph=(u*rate+rnd(i*3+h*17))%1,sp=ph<.12?1-ph/.12:0;
+      neuron(nx,ny,40+i+h*10,mixC('#8a63a8','#f1c6ff',.3+.7*sp),ap*(.55+.45*sp),1,.24,u);
+      if(sp>0)glow(nx,ny,26,'rgba(255,220,255,0.9)',ap*sp*.9);}
+    if(labels)T(labels[h],x,y+104,{size:30,w:600,c:C.sc,align:'center',a:ap});});
+  // one inhibitory arc over the top (left -> right) and one underneath (right -> left), each ending in a T-bar
+  // perpendicular to the line, just short of the dome it inhibits
+  const arc=(x1,y1,x2,y2,bow,col,p)=>{const pts=[];const n=48;for(let i=0;i<=n*p;i++){const t=i/n;pts.push([lerp(x1,x2,t),lerp(y1,y2,t)-bow*Math.sin(Math.PI*t)]);}
+    if(pts.length>1)line(pts,col,5,ap);
+    if(p>.97){const [ex,ey]=pts[pts.length-1],[qx,qy]=pts[pts.length-4],L=Math.hypot(ex-qx,ey-qy)||1,nx=-(ey-qy)/L,ny=(ex-qx)/L;
+      line([[ex-nx*20,ey-ny*20],[ex+nx*20,ey+ny*20]],col,8,ap);}};
+  if(ip>0){arc(R[0][0]+20,cy-104,R[1][0]-48,cy-96,110,'#eef0f5',ip);
+    arc(R[1][0]-104,cy+66,R[0][0]+104,cy+66,-70,'#eef0f5',seg(ip,.2,1));
+    T('mutual inhibition',cx,cy-232,{size:24,c:C.mute,align:'center',a:ap*seg(ip,.8,1)});}
+  ctx.restore();}
+
+const scenes = [
+{ name:'Title', dur:7.7, draw(u){
+  // ambient: a slow see-saw between two actions
+  ctx.save();ctx.globalAlpha*=.5;const tilt=.12*Math.sin(u*.9);ctx.translate(1520,880);ctx.rotate(tilt);
+  line([[-240,0],[240,0]],C.mute,4,1);circle(-212,-24,20,C.L,1);circle(212,-24,20,C.R,1);ctx.restore();
+  line([[1520,886],[1492,936],[1548,936],[1520,886]],C.mute,3,.5);
+  T('Striatal indirect pathway',120,400,{f:DISP,size:96});   // title stays white (Jay)
+  T('mediates exploration',120,510,{f:DISP,size:96});
+  T('via collicular competition',120,620,{f:DISP,size:96,it:true});
+  T('Jaeeon Lee & Bernardo L. Sabatini',120,712,{size:34,a:seg(u,.6,1.6)});
+  T('HHMI · Department of Neurobiology, Harvard Medical School · Nature (2021)',120,762,{size:28,c:C.mute,a:seg(u,1,2)});
+}},
+{ name:'Two pathways', dur:15.56, draw(u){
+  header(1,'','Two pathways out of the striatum',u);
+  const ap=seg(u,.3,1.1),sx=420,sy=630;
+  ellipse(sx,sy,250,300,'#141b2c',ap,'#2c3550',3);T('striatum',sx,sy+344,{size:28,c:C.mute,align:'center',a:ap});
+  [[250,430,11],[600,500,12],[300,850,13],[570,820,14],[230,640,15]].forEach(([x,y,sd],i)=>neuron(x,y,sd,i%2?C.ispn:C.dspn,ap*.22,1,.55,u));
+  neuron(400,480,3,C.dspn,ap,lin(u,.4,2.2),1,u,[[540,470],[640,452]],lin(u,1.6,2.4));
+  neuron(430,790,7,C.ispn,seg(u,4.9,5.6),lin(u,5.0,6.8),1,u,[[570,800],[650,808]],lin(u,6,6.8));
+  T('dSPN',590,436,{size:26,w:600,c:C.dspn,a:seg(u,1.8,2.4)});
+  T('iSPN',600,790,{size:26,w:600,c:C.ispn,a:seg(u,6.2,6.8)});
+  const pd=lin(u,2.2,3),pi=lin(u,6.6,7.4);
+  arrow(660,450,1090,410,C.dspn,6,ap,pd);arrow(660,808,1090,800,C.ispn,6,seg(u,4.9,5.6),pi);
+  const g=seg(u,2.6,3.2),s=seg(u,7,7.6);
+  T('direct pathway',870,410,{size:30,c:C.dspn,align:'center',a:seg(u,.9,1.5)});
+  T('indirect pathway',870,770,{size:30,c:C.ispn,align:'center',a:seg(u,5.3,5.9)});
+  rect(1120,350,330,120,C.dspn,g,60);T('reinforce',1285,413,{f:DISP,size:56,align:'center',base:'middle',c:'#0e1320',a:g});
+  rect(1120,740,330,120,C.ispn,s,60);T('suppress',1285,803,{f:DISP,size:56,align:'center',base:'middle',c:'#0e1320',a:s});
+  const d2=seg(u,7.4,8.2);rect(720,840,300,52,'#2a1b2a',d2,26);T('D2 dopamine receptor',870,875,{size:24,w:600,c:C.ispn,align:'center',a:d2});
+  const e=lin(u,12.3,13.3),ea=seg(u,12.17,12.6);
+  arrow(1470,780,1660,640,C.sc,5,ea,e);
+  T('explore?',1600,610,{f:DISP,size:72,it:true,c:C.sc,a:seg(u,13,13.6)});
+}},
+{ name:'The task', dur:13.65, draw(u){
+  header(2,'','A tone tells the mouse where to lick',u);
+  const ap=seg(u,.3,1.1),mx=560,my=700;
+  // which tone is playing, and the lick that follows
+  const A=seg(u,2.82,3.3)*(1-seg(u,6.7,7)),B=seg(u,7,7.5);
+  const lickA=u>3.6&&u<6.7?Math.abs(Math.sin((u-3.6)*8)):0,lickB=u>7.7?Math.abs(Math.sin((u-7.7)*8)):0;
+  spout(mx-62,my-262,C.L,ap,A);spout(mx+62,my-262,C.R,ap,B);
+  T('left',mx-62,my-362,{size:24,c:C.L,align:'center',a:ap});T('right',mx+62,my-362,{size:24,c:C.R,align:'center',a:ap});T('spouts',mx,my-400,{size:24,c:C.mute,align:'center',a:ap});
+  mouseTop(mx,my,150,ap,lickA?-1:lickB?1:0,lickA||lickB);
+  drop(mx-62-34,my-236,16,seg(u,4,4.4)*(1-seg(u,6.6,6.9)));drop(mx+62+34,my-236,16,seg(u,8.1,8.5));
+  // tone badge with sound waves in the tone's colour
+  const tx=160,ty=440;[[A,'Tone A',C.L],[B,'Tone B',C.R]].forEach(([k,l,c])=>{if(k<=0)return;rect(tx-10,ty-50,190,100,'#1a2236',k,16);
+    for(let w=0;w<3;w++){const r=lin((u*1.4+w/3)%1,0,1);ctx.save();ctx.globalAlpha*=k*(1-r);ctx.strokeStyle=c;ctx.lineWidth=4;ctx.beginPath();ctx.arc(tx+30,ty,16+r*34,-.7,.7);ctx.stroke();ctx.restore();}
+    rect(tx+8,ty-14,18,28,c,k,3);T(l,tx+120,ty+10,{size:30,w:600,c,align:'center',a:k});});
+  const X=1000,ta=seg(u,2.9,3.6),tb=seg(u,7.05,7.7);
+  runs([['Tone A',C.L],['  →  lick the ',C.ink],['left',C.L],[' spout for water',C.ink]],X,380,{size:40,a:ta});
+  runs([['Tone B',C.R],['  →  lick the ',C.ink],['right',C.R],[' spout',C.ink]],X,470,{size:40,a:tb});
+  T('50 ms tone · first lick within 500 ms is the choice',X,530,{size:26,c:C.mute,a:tb});
+  const oc=[['correct',C.cor,'lick to the cued spout · water'],['incorrect',C.inc,'lick to the other spout'],['miss',C.miss,'no lick within 500 ms']];
+  oc.forEach(([l,c,d],i)=>{const t0=i===0?8.84:i===1?9.6:11.6,aa=seg(u,t0,t0+.6);pill(X,650+i*96,l,c,aa,d);});
+}},
+{ name:'Activate iSPNs', dur:15.26, draw(u){
+  header(3,'','Activating iSPNs in the right striatum',u);
+  // coronal right hemisphere: cortex, striatum expressing the opsin, two tapered fibres with four light sites each
+  const ap=seg(u,.3,1.1),mx=220;
+  ctx.save();ctx.globalAlpha*=ap;ctx.beginPath();ctx.moveTo(mx,300);ctx.bezierCurveTo(mx+380,280,mx+520,480,mx+470,700);ctx.bezierCurveTo(mx+430,860,mx+200,930,mx,930);ctx.closePath();
+  ctx.fillStyle='#141b2c';ctx.fill();ctx.strokeStyle='#4a5470';ctx.lineWidth=3;ctx.stroke();ctx.restore();
+  line([[mx,290],[mx,940]],'#3a4566',2,ap,[6,8]);
+  ctx.save();ctx.globalAlpha*=ap*.7;ctx.strokeStyle='#323b55';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(mx+20,360);ctx.bezierCurveTo(mx+300,350,mx+420,500,mx+400,690);ctx.stroke();ctx.restore();
+  ellipse(mx+260,620,140,190,'rgba(239,95,159,0.13)',ap,C.ispn,2.5);T('striatum',mx+260,850,{size:24,c:C.mute,align:'center',a:ap});
+  const F=[[[mx+200,250],[mx+214,700]],[[mx+330,250],[mx+352,770]]];
+  F.forEach(([[x0,y0],[x1,y1]])=>{ctx.save();ctx.globalAlpha*=ap;ctx.fillStyle='#8f98ad';ctx.beginPath();ctx.moveTo(x0-11,y0);ctx.lineTo(x0+11,y0);ctx.lineTo(x1+2,y1);ctx.lineTo(x1-2,y1);ctx.closePath();ctx.fill();ctx.restore();});
+  const sites=[];F.forEach(([[x0,y0],[x1,y1]],fi)=>{for(let k=0;k<4;k++){const t=.42+k*.18;sites.push([lerp(x0,x1,t),lerp(y0,y1,t)]);}});
+  // the effect on left-cued trials, revealed with the second sentence: only the lowest lateral site (VLS) matters
+  const eff=[.05,.08,.1,.15,.06,.1,.3,1],mapA=seg(u,8.3,9.3),fi=Math.floor((u-1)/.75)%8;
+  sites.forEach((p,i)=>{const lit=u>1&&u<7.6&&i===fi&&((u-1)%.75)<.45;if(lit)glow(p[0],p[1],60,'rgba(127,211,255,0.95)',1);
+    const e=eff[i]*mapA;circle(p[0],p[1],11+20*e,mixC('#3a4566',C.ispn,e*1.2),ap,lit?C.laser:'#7fd3ff',lit?4:2);});
+  const vl=seg(u,9.6,10.2),vs=sites[7];if(vl>0){circle(vs[0],vs[1],44+3*Math.sin(u*5),null,vl,C.ispn,4);T('VLS',vs[0]+60,vs[1]+12,{size:32,w:600,c:C.ispn,a:vl});}
+  T('2 fibres · 8 light sites',mx+80,1000,{size:24,c:C.mute,a:ap});
+  const X=1060,pa=seg(u,4.2,4.9);
+  rect(X,320,40,40,C.laser,pa*.85,6);T('light on iSPNs for 100 ms, right after the tone',X+60,350,{size:30,a:pa});
+  T('on about 30% of trials, one site at a time',X+60,392,{size:26,c:C.mute,a:pa});
+  T('ventrolateral striatum (VLS)',X,520,{size:32,w:600,c:C.ispn,a:seg(u,9.6,10.4)});
+  const n=seg(u,12.4,13.2);
+  T('−82%',X,700,{f:DISP,size:170,c:C.ispn,a:n});
+  T('correct choices on left-cued trials',X+6,770,{size:32,a:n});
+  T('n = 5 mice, 9 sessions · P < 10⁻⁵',X+6,820,{size:24,c:C.mute,a:n});
+}},
+{ name:'A switch', dur:10.54, draw(u){
+  header(4,'','Not a freeze — a switch',u);
+  // lick raster, left-cued trials: no-stim rows lick left (blue); stim rows (light band) lick right (red)
+  const x0=140,x1=620,y0=300,rows=12,rh=34,ap=seg(u,.2,1);const tx=f=>lerp(x0+30,x1,f);
+  T('left-cued trials',x0,y0-20,{size:28,w:600,a:ap});
+  line([[tx(0),y0+4],[tx(0),y0+12+rows*rh]],C.mute,2,ap,[6,6]);
+  for(let r=0;r<rows;r++){const stim=r>=8,y=y0+24+r*rh+(stim?14:0);
+    if(stim)rect(tx(.02),y-rh/2+3,tx(.14)-tx(0),rh-6,C.laser,ap*.3,3);
+    const right=stim&&u>2.43,ra=stim?seg(u,2.43+r*.04,2.9+r*.04):ap;
+    for(let k=0;k<6;k++){const f=.16+k*.13+rnd(r*7+k)*.05;if(f>.98)break;
+      if(stim&&!right)continue;circle(tx(stim?f+.05:f),y,7,stim?C.R:C.L,stim?ra:ap);}}
+  T('no light',x0-8,y0+24+3.5*rh,{size:20,c:C.mute,align:'right',a:ap});T('light',x0-8,y0+38+9.5*rh,{size:20,c:C.laser,align:'right',a:ap});
+  T('tone',tx(0),y0+60+rows*rh,{size:22,c:C.mute,align:'center',a:ap});T('time →',x1,y0+60+rows*rh,{size:22,c:C.mute,align:'right',a:ap});
+  rect(x0,y0+92+rows*rh,22,22,C.laser,ap*.5,4);T('light on',x0+32,y0+110+rows*rh,{size:22,c:C.laser,a:ap});
+  circle(x0+170,y0+103+rows*rh,7,C.L,ap);T('left lick',x0+184,y0+110+rows*rh,{size:22,c:C.mute,a:ap});
+  circle(x0+300,y0+103+rows*rh,7,C.R,ap);T('right lick',x0+314,y0+110+rows*rh,{size:22,c:C.mute,a:ap});
+  // outcomes with and without light (left-cued trials, VLS; heights approximate, Fig. 1f)
+  const ba=seg(u,.4,1.1),em=(i,k)=>u<2.43?1:(i===1?1:lerp(1,.35,seg(u,2.43,3)));
+  bars(820,800,380,[['correct',C.cor],['incorrect',C.inc],['miss',C.miss]],[[.97,.01,.02],[.16,.66,.18]],seg(u,.5,1.3),seg(u,1.2,2.2),ba,em);
+  const X=1420,tc=seg(u,4.31,5.1);
+  T('Suppressing',X,470,{f:DISP,size:56,a:tc});T('one action',X,536,{f:DISP,size:56,a:tc});
+  T('triggered the',X,620,{f:DISP,size:56,it:true,c:C.ispn,a:seg(u,4.8,5.6)});T('opposite one',X,686,{f:DISP,size:56,it:true,c:C.ispn,a:seg(u,4.8,5.6)});
+  const td=seg(u,7.4,8.1);
+  T('…only if that spout',X,790,{size:30,a:td});T('had been rewarded before',X,830,{size:30,a:td});
+}},
+{ name:'Superior colliculus', dur:10.99, draw(u){
+  header(5,'','The superior colliculus reads out the choice',u);
+  const ap=seg(u,.3,1.1);
+  colliculi(560,520,u,ap,[.5,.5],0,0,.95);
+  T('downstream of the basal ganglia',560,750,{size:26,c:C.mute,align:'center',a:ap});
+  T('needed for licking',560,792,{size:28,c:C.ink,align:'center',a:seg(u,3.6,4.3)});
+  // a recording probe in the left dome
+  const pa=seg(u,4.8,5.6);line([[340,230],[358,470]],'#c9cdd8',10,pa);for(let k=0;k<5;k++)circle(lerp(342,356,k/5+.1),lerp(260,450,k/5+.1),3.5,'#0e1320',pa);
+  // direction selectivity: rises after the tone, held until the first lick (schematic of Fig. 2c)
+  const x0=1080,x1=1760,yb=760,h=360,a2=seg(u,6.08,6.8),tT=.18,tL=.72;
+  axes(x0,x1,yb,h,a2);
+  line([[lerp(x0,x1,tT),yb],[lerp(x0,x1,tT),yb-h]],C.mute,2,a2,[6,8]);line([[lerp(x0,x1,tL),yb],[lerp(x0,x1,tL),yb-h]],C.mute,2,a2,[6,8]);
+  T('tone',lerp(x0,x1,tT),yb+36,{size:24,c:C.mute,align:'center',a:a2});T('first lick',lerp(x0,x1,tL),yb+36,{size:24,c:C.mute,align:'center',a:a2});
+  trace(x0,x1,yb,h,f=>.06+.72*(f<tT?0:1-Math.exp(-(f-tT)/.12))-.1*(f>tL?(f-tL)*2:0),C.laser,5,a2,lin(u,6.6,9.2));
+  T('direction selectivity',x0,yb-h-30,{size:30,w:600,c:C.laser,a:a2});
+  T('held until the first lick',x0+340,yb-h-30,{size:28,a:seg(u,8.6,9.3)});
+  T('n = 673 units, 7 mice',x1,yb+80,{size:24,c:C.mute,align:'right',a:seg(u,8.6,9.3)});
+}},
+{ name:'Push–pull', dur:15.35, draw(u){
+  header(6,'','Push on one side, pull on the other',u);
+  const ap=seg(u,.3,1.1),cx=960;
+  // right VLS iSPNs (light on) -> SNr -> both colliculi
+  const sx=1290,sy=320;neuron(sx,sy,7,C.ispn,ap,1,.7,u);glow(sx,sy,90,'rgba(127,211,255,0.9)',ap*(.45+.35*Math.sin(u*6)));
+  T('right VLS iSPNs',sx+120,sy+10,{size:28,w:600,c:C.ispn,a:ap});T('light on',sx+120,sy+46,{size:24,c:C.laser,a:ap});
+  circle(cx,330,26,'#3a4566',ap,C.mute,3);T('SNr',cx-46,340,{size:26,c:C.mute,align:'right',a:ap});
+  arrow(sx-50,sy+10,cx+36,330,C.mute,3,ap,lin(u,.6,1.4));
+  arrow(cx-20,354,cx-190,470,C.mute,3,ap,lin(u,1,1.8));arrow(cx+20,354,cx+190,470,C.mute,3,ap,lin(u,1,1.8));
+  const sup=seg(u,1.2,2),exc=seg(u,7.19,8);
+  colliculi(cx,600,u,ap,[.45+.5*exc,.45-.38*sup],0,0,.9);
+  // activity during the light (light band), no stim grey vs stim coloured (schematic of Fig. 2f)
+  const yb=930,h=120,band=[.35,.5];
+  const base=f=>.25+.45*Math.exp(-Math.pow((f-.4)/.12,2));
+  const LX=[540,860],RX=[1060,1380];
+  axes(...RX,yb,h,ap*seg(u,.8,1.4),band);trace(...RX,yb,h,base,'#8f98ad',3,ap*seg(u,.8,1.4));
+  trace(...RX,yb,h,f=>Math.max(.03,base(f)-(f>.35&&f<.55?.45*Math.sin((f-.35)/.2*Math.PI):0)),C.L,4,sup,lin(u,1.2,3));
+  axes(...LX,yb,h,ap*seg(u,6.8,7.4),band);trace(...LX,yb,h,base,'#8f98ad',3,ap*seg(u,6.8,7.4));
+  trace(...LX,yb,h,f=>base(f)+(f>.35&&f<.55?.4*Math.sin((f-.35)/.2*Math.PI):0),C.R,4,exc,lin(u,7.3,9));
+  T('suppressed ↓',RX[1]+30,yb-60,{f:DISP,size:48,c:C.L,a:sup});T('right lSC · 249 units',RX[1]+30,yb-16,{size:22,c:C.mute,a:sup});
+  T('as classic models predict',RX[1]+30,yb+22,{size:22,c:C.mute,a:seg(u,4.6,5.3)});
+  T('excited ↑',LX[0]-30,yb-60,{f:DISP,size:48,c:C.R,align:'right',a:exc});T('left lSC · 186 units',LX[0]-30,yb-16,{size:22,c:C.mute,align:'right',a:exc});
+  T('drives licks to the right',LX[0]-30,yb+22,{size:22,c:C.mute,align:'right',a:seg(u,10.2,10.9)});
+}},
+{ name:'Competition', dur:15.77, draw(u){
+  header(7,'','The two colliculi compete',u);
+  // two collicular hemispheres: baseline firing, mutual inhibition draws in, Jaws silences the right, the left is released
+  const ap=seg(u,.4,1.1),jaws=seg(u,5.9,6.6),rel=seg(u,9.6,10.4),ip=lin(u,3.9,5.1);
+  colliculi(960,480,u,ap,[.45+.5*rel,.45-.4*jaws],ip,jaws);
+  T('?',960,410,{f:DISP,size:72,c:C.mute,align:'center',a:seg(u,.8,1.4)*(1-seg(u,3.6,4))});
+  T('Jaws: silence right lSC',1400,300,{size:26,w:600,c:C.jaws,a:jaws});
+  T('released ↑',560,480,{f:DISP,size:44,c:C.R,align:'right',a:rel});
+  // evidence: wrong-side licks (left-cued trials; heights approximate, Fig. 3b) and left lSC activity (schematic of Fig. 3d)
+  const ab=seg(u,6.6,7.4);
+  bars(300,950,200,[['correct',C.cor],['incorrect',C.inc],['miss',C.miss]],[[.82,.05,.03],[.45,.38,.06]],seg(u,6.7,7.4),seg(u,7.4,8.2),ab,null,['no light','Jaws'],C.jaws);
+  T('wrong-side licks, as with iSPN activation · 6 mice',220,1046,{size:22,c:C.mute,a:ab});
+  const ad=seg(u,9.6,10.4),X0=1120,X1=1640,yb=950,h=170,band=[.2,.62];
+  axes(X0,X1,yb,h,ad,band,C.jaws);T('light',lerp(X0,X1,.41),yb-h-14,{size:20,c:C.jaws,align:'center',a:ad});
+  const base=f=>.18+.5*Math.exp(-Math.pow((f-.22)/.05,2))+.1*Math.exp(-Math.pow((f-.4)/.2,2));
+  trace(X0,X1,yb,h,base,'#8f98ad',3,ad);trace(X0,X1,yb,h,f=>base(f)+(f>.2&&f<.62?.32*Math.sin((f-.2)/.42*Math.PI):0),C.L,4,ad,lin(u,9.8,11.5));
+  T('left lSC fires more · 152 units',X0,1046,{size:22,c:C.mute,a:ad});
+  T('Each side holds the other in check.',960,660,{f:DISP,size:40,it:true,c:C.sc,align:'center',a:seg(u,12.9,13.6)});
+}},
+{ name:'Lose–switch', dur:22.73, draw(u){
+  header(8,'','Without iSPNs, mice stop exploring',u);
+  const a0=seg(u,.5,1.2);let px=140;px+=pill(px,300,'bad outcome',C.miss,a0)+20;
+  arrow(px,300,px+60,300,C.mute,4,a0,1);pill(px+80,300,'iSPNs ↑',C.ispn,a0);
+  // the left spout stops paying
+  const A=seg(u,4.94,5.6),mx=360,my=720;
+  spout(mx-46,my-192,C.L,A);spout(mx+46,my-192,C.R,A);mouseTop(mx,my,110,A);
+  drop(mx+46+30,my-172,14,A);xmark(mx-46,my-232,26,C.miss,A,lin(u,5.4,6.2));
+  T('no water on the left spout',mx,my+150,{size:26,c:C.mute,align:'center',a:A});
+  // left-cued trials, first day without reward (heights approximate, Fig. 4b)
+  const B=seg(u,7.4,8.1),e=(i,k)=>k===0?1-.55*seg(u,12.44,13):1;
+  bars(820,820,380,[['correct',C.cor],['incorrect',C.inc],['miss',C.miss]],[[.35,.28,.3],[.9,.05,.03]],seg(u,7.6,8.6),seg(u,12.44,13.6),B,e,['control','iSPNs silenced']);
+  const t1=seg(u,8.4,9.1),Ty=900;
+  runs([['control: ',C.mute],['holds back',C.miss],[' and ',C.ink],['explores',C.inc]],820,Ty,{size:28,a:t1});
+  runs([['iSPNs silenced: ',C.laser],['keeps licking the empty spout',C.ink]],820,Ty+46,{size:28,a:seg(u,13.2,13.9)});
+  runs([['and ',C.ink],['explores less',C.inc]],820,Ty+88,{size:28,a:seg(u,16.4,17)});
+  // in the colliculus the push-pull reverses (schematic of Fig. 4d-f)
+  const C2=seg(u,19.33,20.1);
+  colliculi(1610,580,u,C2,[.45-.35*C2,.45+.45*C2],0,0,.7,['left ↓','right ↑']);
+  T('lSC with iSPNs silenced:',1620,380,{size:26,w:600,align:'center',a:C2});T('the opposite of activation',1620,690,{size:24,c:C.mute,align:'center',a:seg(u,20.4,21)});
+}},
+{ name:'The circuit', dur:14.9, draw(u){
+  header(9,'','A circuit for exploration',u);
+  const ap=seg(u,.3,1.1),inA=seg(u,3.37,4),tg=seg(u,5.6,6.3),cp=seg(u,8.14,8.8);
+  // inputs converge on iSPNs
+  const ix=640,iy=520;
+  [['context',C.dspn,400],['action',C.miss,520],['negative outcome','#bd63d1',640]].forEach(([l,c,y],i)=>{
+    T(l,330,y+10,{size:30,w:600,c,align:'right',a:ap});arrow(350,y,ix-40,iy+(y-520)*.15,c,4,ap*lerp(.35,1,inA),1);});
+  neuron(ix,iy,7,C.ispn,ap,1,.75,u);glow(ix,iy,110,'rgba(239,95,159,0.9)',inA*(.35+.25*Math.sin(u*5)));
+  T('iSPNs',ix,iy+120,{size:30,w:600,c:C.ispn,align:'center',a:ap});
+  // via GPe and SNr (faint)
+  circle(820,iy,18,'#3a4566',ap*.7);circle(950,iy,18,'#3a4566',ap*.7);T('GPe',820,iy+56,{size:22,c:C.mute,align:'center',a:ap});T('SNr',950,iy+56,{size:22,c:C.mute,align:'center',a:ap});
+  inhib(ix+70,iy,800,iy,'#8f98ad',3,ap*.8);inhib(840,iy,930,iy,'#8f98ad',3,ap*.8);inhib(970,iy,1110,iy+70,'#8f98ad',3,ap*.8);
+  // SC: two action channels that inhibit each other
+  const tx=1170,ty=600,qx=1170,qy=400;
+  rect(1080,320,180,370,'#1a2236',ap,30);T('SC',1170,730,{size:30,w:600,c:C.sc,align:'center',a:ap});
+  circle(qx,qy,40,mixC('#3a4566',C.R,cp),ap);glow(qx,qy,120,'rgba(240,84,79,0.9)',cp*(.4+.2*Math.sin(u*6)));
+  circle(tx,ty,40,mixC('#3a4566',C.L,tg),ap);
+  ctx.save();ctx.globalAlpha*=ap;ctx.strokeStyle='#b8bfcc';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(qx-30,qy+44);ctx.quadraticCurveTo(qx-70,(qy+ty)/2,tx-30,ty-44);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx+30,ty-44);ctx.quadraticCurveTo(tx+70,(qy+ty)/2,qx+30,qy+44);ctx.stroke();ctx.restore();
+  // outputs: the failed (target) action is suppressed, the competing action is released
+  arrow(qx+48,qy,1470,qy,C.R,5,ap*lerp(.35,1,cp),1);T('competing action',1500,qy+10,{size:32,w:600,c:C.R,a:ap*lerp(.45,1,cp)});
+  arrow(tx+48,ty,1470,ty,C.L,5,ap*lerp(.6,.35,tg),1);T('failed action',1500,ty+10,{size:32,w:600,c:C.L,a:ap});xmark(1330,ty,30,C.L,tg*.9,lin(u,6,6.8));
+  T('proposed model (Extended Data Fig. 10e)',140,790,{size:24,c:C.mute,a:ap});
+  const steps=[['bad outcome',C.miss,3.4],['iSPNs ↑',C.ispn,4.4],['failed action ↓',C.L,5.6],['SC competition',C.sc,8.3],['competing action ↑',C.R,10.4]];
+  let x=140;steps.forEach(([l,c,t0],i)=>{const aa=seg(u,t0,t0+.5);if(i)arrow(x-50,900,x-14,900,C.mute,3,aa,1);
+    ctx.save();ctx.font=`600 30px ${SANS}`;const w=ctx.measureText(l).width+56;ctx.restore();
+    rect(x,860,w,80,'#1a2236',aa,40);ctx.save();ctx.globalAlpha*=aa;ctx.strokeStyle=c;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x,860,w,80,40);ctx.stroke();ctx.restore();
+    T(l,x+w/2,902,{align:'center',base:'middle',size:30,w:600,c,a:aa});x+=w+64;});
+}},
+{ name:'Takeaways', dur:21.76, draw(u){
+  T('In short',120+(1-seg(u,0,.6))*20,176,{f:DISP,size:66,a:seg(u,0,.6)});
+  const pts=['Activating iSPNs makes mice switch to the other spout.',
+             'iSPNs push one colliculus down and pull the other up.',
+             'The colliculi compete, so suppressing one releases the other.',
+             'iSPNs are needed to drop a devalued action and explore.'];
+  pts.forEach((s,i)=>{const a=seg(u,.3+i*.35,.9+i*.35),y=320+i*92;T(String(i+1),120,y,{f:DISP,size:52,c:C.ispn,a});T(s,180,y-6,{size:30,a});});
+  const na=seg(u,3.44,4.2);
+  rect(120,700,1080,4,C.ispn,na,2);
+  T('Not just a brake: stopping one action',120,780,{f:DISP,size:52,a:na});
+  T('becomes a way to try another.',120,846,{f:DISP,size:52,it:true,c:C.sc,a:seg(u,4.4,5.2)});
+  const qa=seg(u,9.32,10.2);
+  qr(1380,300,400,qa);
+  T('Read the paper',1580,760,{size:32,w:600,align:'center',a:qa});
+  T('Nature (2021) · doi 10.1038/s41586-021-04055-4',1580,800,{size:20,c:C.mute,align:'center',a:qa});
+  T('click or scan',1580,834,{size:20,c:C.laser,align:'center',a:qa});
+  T('Jaeeon Lee & Bernardo L. Sabatini · HHMI, Department of Neurobiology, Harvard Medical School',120,1010,{size:24,c:C.mute,a:seg(u,10.5,11.5)});
+  T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,10.5,11.5)});
+}}];
+
+// narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
+const NARR=[{"dur": 7.73, "sent": [0.5, 5.47]}, {"dur": 15.56, "sent": [0.5, 5.21, 12.17]}, {"dur": 13.65, "sent": [0.5, 2.82, 7.0, 8.84]}, {"dur": 15.26, "sent": [0.5, 8.26]}, {"dur": 10.54, "sent": [0.5, 2.43, 4.31]}, {"dur": 10.99, "sent": [0.5, 6.08]}, {"dur": 15.35, "sent": [0.5, 7.19, 12.26]}, {"dur": 15.77, "sent": [0.5, 3.87, 5.86, 12.9]}, {"dur": 22.73, "sent": [0.5, 4.94, 7.63, 12.44, 19.33]}, {"dur": 14.9, "sent": [0.5, 3.37, 8.14]}, {"dur": 21.76, "sent": [0.5, 3.44, 9.32]}];
+const CUES=[[0.5, 5.47], [0.5, 5.21, 12.17], [0.5, 2.82, 7.0, 8.84], [0.5, 8.26], [0.5, 2.43, 4.31], [0.5, 6.08], [0.5, 7.19, 12.26], [0.5, 3.87, 5.86, 12.9], [0.5, 4.94, 7.63, 12.44, 19.33], [0.5, 3.37, 8.14], [0.5, 3.44, 9.32]];
+let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
+  const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
+const DUR=acc,OUTRO=2.5;
+function warp(s,u){const k=s.knots;for(let i=1;i<k.length;i++)if(u<=k[i][0]){const [a,va]=k[i-1],[b,vb]=k[i];return lerp(va,vb,b>a?(u-a)/(b-a):1);}return k[k.length-1][1];}
+
+function render(t){
+  ctx.setTransform(SC,0,0,SC,0,0);ctx.globalAlpha=1;ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
+  // dot grid
+  ctx.fillStyle=C.grid;for(let x=60;x<W;x+=60)for(let y=60;y<H;y+=60)ctx.fillRect(x-1.5,y-1.5,3,3);
+  const s=scenes.find(s=>t>=s.start&&t<s.start+s.dur)||scenes[scenes.length-1];
+  const u=t-s.start;const fade=.45;
+  const isFirst=s===scenes[0],isLast=s===scenes[scenes.length-1];
+  ctx.globalAlpha=Math.min(isFirst?1:clamp(u/fade),isLast?1:clamp((s.dur-u)/fade));
+  s.draw(warp(s,u),s.vdur);ctx.globalAlpha=1;
+  // progress hairline
+  ctx.fillStyle=C.faint;ctx.fillRect(0,H-6,W,6);ctx.fillStyle=C.laser;ctx.fillRect(0,H-6,W*t/DUR,6);
+  const out=seg(t,DUR-OUTRO,DUR);if(out>0){ctx.fillStyle=`rgba(5,7,12,${out})`;ctx.fillRect(0,0,W,H);}
+}
+window.__render=render;window.__DUR=DUR;
+
+// ---------- player ----------
+const scrub=document.getElementById('scrub'),timeEl=document.getElementById('time'),playBtn=document.getElementById('play'),icon=document.getElementById('icon'),chapEl=document.getElementById('chapters');
+const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;draw();};chapEl.appendChild(b);});
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t=0,playing=false,last=null; // starts once we know whether the browser lets audio play
+function setIcon(){icon.innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/>':'<path d="M3 1 L13 7 L3 13 Z"/>';playBtn.setAttribute('aria-label',playing?'Pause':'Play');}
+function draw(){render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
+  scenes.forEach((s,i)=>document.getElementById('chap'+i).setAttribute('aria-current',t>=s.start&&t<s.start+s.dur?'true':'false'));}
+const au=document.getElementById('narr'),soundBtn=document.getElementById('sound'),big=document.getElementById('bigplay');au.muted=false;
+// sound is on by default; if the browser blocks audio before a click, hold the film at its start behind a play-with-sound button
+const showBig=on=>{big.hidden=!on;};let blocked=false;
+// volume: the mix is about -16 LUFS, so start at half amplitude (-6 dB); the slider is perceptual (volume = slider squared)
+// and each viewer's level is remembered. iOS ignores audio.volume, so the slider hides there and the device keys do it.
+const volEl=document.getElementById('volume'),volIcon=document.getElementById('volicon'),VOL0=.7;let vol=VOL0;
+try{const v=parseFloat(localStorage.getItem('motion-abstract-volume'));if(v>=0&&v<=1)vol=v;}catch(e){}
+function setVol(v,save){vol=Math.min(1,Math.max(0,v));au.volume=vol*vol;volEl.value=Math.round(vol*100);soundLabel();
+  if(save)try{localStorage.setItem('motion-abstract-volume',String(vol));}catch(e){}}
+function soundLabel(){const off=au.muted||vol===0,w1='<path d="M10.3 6a2.8 2.8 0 0 1 0 4"/>',w2='<path d="M12.3 4a5.6 5.6 0 0 1 0 8"/>';
+  volIcon.innerHTML='<path class="spk" d="M2 6h2.5L8 3v10L4.5 10H2z"/>'+(off?'<path d="M11 6l4 4M15 6l-4 4"/>':vol>.45?w1+w2:w1);
+  soundBtn.setAttribute('aria-label',off?'Unmute':'Mute');soundBtn.title=(off?'Unmute':'Mute')+' (M)';}
+function syncAudio(){try{if(playing){if(Math.abs(au.currentTime-t)>.25)au.currentTime=t;if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
+setVol(vol);if(au.volume===1&&vol<1)volEl.hidden=true;
+volEl.oninput=()=>{setVol(volEl.value/100,true);if(vol>0&&au.muted){au.muted=false;blocked=false;soundLabel();syncAudio();}};
+soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
+big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
+const REST=()=>DUR-OUTRO-.01;
+function loop(ts){if(playing){if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
+function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05)t=0;}setIcon();}
+window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
+// the QR code on the closing slide is also a link to the paper
+const PAPER='https://doi.org/10.1038/s41586-021-04055-4',stage=document.getElementById('stage');
+function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+NARR[NARR.length-1].sent[2]+.5)return false;const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;return x>=1380&&x<=1780&&y>=300&&y<=845;}
+playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}toggle();};
+stage.onmousemove=e=>{stage.style.cursor=overQR(e)?'pointer':'';};
+// full screen: the real Fullscreen API where it exists, otherwise a fixed full-window stage
+const fsBtn=document.getElementById('fs'),fsx=document.getElementById('fsx');
+const isFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement)||stage.classList.contains('is-full');
+function setFull(on){if(on===isFull())return;const req=stage.requestFullscreen||stage.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
+  const apiFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  if(on){const p=req?req.call(stage):null;if(!req)stage.classList.add('is-full');else if(p&&p.catch)p.catch(()=>stage.classList.add('is-full'));
+    // some embedded browsers never answer the request: fall back to filling the window
+    setTimeout(()=>{if(!apiFull())stage.classList.add('is-full');fit();fsLabel();},700);}
+  else{stage.classList.remove('is-full');if(apiFull()&&ex)ex.call(document);}
+  setTimeout(()=>{fit();fsLabel();},60);}
+function fsLabel(){fsBtn.setAttribute('aria-label',isFull()?'Exit full screen':'Full screen');}
+fsBtn.onclick=()=>setFull(!isFull());fsx.onclick=e=>{e.stopPropagation();setFull(false);};
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{fit();fsLabel();}));
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='f'||e.key==='F'){e.preventDefault();setFull(!isFull());}else if(e.key==='m'||e.key==='M'){e.preventDefault();soundBtn.click();}else if(e.key==='Escape'&&stage.classList.contains('is-full'))setFull(false);});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();toggle();}});
+scrub.oninput=()=>{t=scrub.value/1000*DUR;draw();};
+if(reduce)t=DUR-OUTRO-.01;
+// match the canvas backing store to its on-screen size so text and lines stay sharp on high-density screens
+function fit(){const r=cv.getBoundingClientRect();const k=Math.min(2,Math.max(1,r.width*(window.devicePixelRatio||1)/W));
+  if(Math.abs(k-SC)>.01){SC=k;cv.width=Math.round(W*k);cv.height=Math.round(H*k);draw();}}
+if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);addEventListener('resize',fit);fit();
+setIcon();
+artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;
+  // try to start with sound; a blocked autoplay leaves the big button up instead (reduced motion: wait for a click)
+  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>showBig(true));
+  requestAnimationFrame(loop);});
+draw();
+</script>
+
+</body></html>
