@@ -41,7 +41,11 @@ canvas { display: block; width: 100%; height: 100%; }
 .transport { display: flex; align-items: center; gap: 12px; }
 button { font: inherit; color: inherit; }
 #play { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
-#play:focus-visible, .chap:focus-visible, #sound:focus-visible, #scrub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#play:focus-visible, .chap:focus-visible, #sound:focus-visible, #scrub:focus-visible, .bigplay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px 14px 20px; border: 0; border-radius: 999px; background: #f5f6f9; color: #0e1320; font: 600 clamp(15px, 2.2vw, 20px)/1 var(--sans); cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.45); transition: transform .15s ease-out; }
+.bigplay:hover { transform: translate(-50%, -50%) scale(1.04); }
+.bigplay svg { width: 1em; height: 1em; fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .bigplay { transition: none; } }
 #play svg { width: 14px; height: 14px; fill: var(--fg); }
 #scrub { flex: 1; min-width: 0; accent-color: var(--accent); }
 #time { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
@@ -61,16 +65,17 @@ button { font: inherit; color: inherit; }
     <h1>Experience shifts value updating from synaptic plasticity to <em>persistent activity</em></h1>
     <p class="byline">Lee, Hennig, Frelih, Gershman &amp; Uchida · motion abstract · <a href="https://www.biorxiv.org/content/10.64898/2025.11.30.691382v2">preprint</a> · <a href="/">Jaeeon Lee</a></p>
   </header>
-  <div class="stage" id="stage"><canvas id="cv" width="1920" height="1080" aria-label="Animated summary of the paper"></canvas></div>
+  <div class="stage" id="stage"><canvas id="cv" width="1920" height="1080" aria-label="Animated summary of the paper"></canvas>
+    <button id="bigplay" class="bigplay" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.8 8z"/></svg>Play with sound</button></div>
   <div class="transport">
     <button id="play" aria-label="Pause"><svg viewBox="0 0 14 14" id="icon"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg></button>
     <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Seek">
     <span id="time">0:00 / 0:00</span>
-    <button id="sound" class="chap" aria-pressed="false">Sound off</button>
-    <audio id="narr" src="narration.mp3" preload="auto" muted></audio>
+    <button id="sound" class="chap" aria-pressed="true">Sound on</button>
+    <audio id="narr" src="narration.mp3" preload="auto"></audio>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
-  <p class="note">Curves and traces are schematic redrawings of the manuscript figures. Numbers quoted on screen (learning constants, discrimination, manipulation outcomes) come from the text. Turn on sound for the narration (synthetic voice, ElevenLabs) and music. Click the stage or press space to play or pause. The QR code at the end links to the preprint.</p>
+  <p class="note">Curves and traces are schematic redrawings of the manuscript figures. Numbers quoted on screen (learning constants, discrimination, manipulation outcomes) come from the text. Sound is on by default: narration (synthetic voice, ElevenLabs) and music. Click the stage or press space to play or pause. The QR code at the end links to the preprint.</p>
   <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
 </div>
 
@@ -496,6 +501,7 @@ const scenes = [
   qr(1380,300,400,qa);
   T('Read the preprint',1580,760,{size:32,w:600,align:'center',a:qa});
   T('bioRxiv · doi 10.64898/2025.11.30.691382',1580,800,{size:22,c:C.mute,align:'center',a:qa});
+  T('click or scan',1580,834,{size:20,c:C.dyn,align:'center',a:qa});
   T('Lee, Hennig, Frelih, Gershman & Uchida · Center for Brain Science, Harvard University',120,1010,{size:24,c:C.mute,a:seg(u,3,4)});
   T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,3,4)});
 }}];
@@ -527,17 +533,27 @@ const scrub=document.getElementById('scrub'),timeEl=document.getElementById('tim
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;draw();};chapEl.appendChild(b);});
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let t=0,playing=!reduce,last=null;
+let t=0,playing=false,last=null; // starts once we know whether the browser lets audio play
 function setIcon(){icon.innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/>':'<path d="M3 1 L13 7 L3 13 Z"/>';playBtn.setAttribute('aria-label',playing?'Pause':'Play');}
 function draw(){render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
   scenes.forEach((s,i)=>document.getElementById('chap'+i).setAttribute('aria-current',t>=s.start&&t<s.start+s.dur?'true':'false'));}
-const au=document.getElementById('narr'),soundBtn=document.getElementById('sound');au.muted=true;
-function syncAudio(){try{if(playing){if(Math.abs(au.currentTime-t)>.25)au.currentTime=t;if(au.paused)au.play().catch(()=>{});}else if(!au.paused)au.pause();}catch(e){}}
-soundBtn.onclick=()=>{au.muted=!au.muted;soundBtn.textContent=au.muted?'Sound off':'Sound on';soundBtn.setAttribute('aria-pressed',String(!au.muted));if(!au.muted&&!playing)toggle();syncAudio();};
+const au=document.getElementById('narr'),soundBtn=document.getElementById('sound'),big=document.getElementById('bigplay');au.muted=false;
+// sound is on by default; if the browser blocks audio before a click, hold the film at its start behind a play-with-sound button
+const showBig=on=>{big.hidden=!on;};let blocked=false;
+function soundLabel(){soundBtn.textContent=au.muted?'Sound off':'Sound on';soundBtn.setAttribute('aria-pressed',String(!au.muted));}
+function syncAudio(){try{if(playing){if(Math.abs(au.currentTime-t)>.25)au.currentTime=t;if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
+soundBtn.onclick=()=>{au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
+big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
 const REST=()=>DUR-OUTRO-.01;
 function loop(ts){if(playing){if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
-function toggle(){playing=!playing;if(playing&&t>=REST()-.05)t=0;setIcon();}
-playBtn.onclick=toggle;document.getElementById('stage').onclick=toggle;
+function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05)t=0;}setIcon();}
+window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
+// the QR code on the closing slide is also a link to the preprint
+const PAPER='https://www.biorxiv.org/content/10.64898/2025.11.30.691382',stage=document.getElementById('stage');
+function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+3.5)return false;const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;return x>=1380&&x<=1780&&y>=300&&y<=845;}
+playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}toggle();};
+stage.onmousemove=e=>{stage.style.cursor=overQR(e)?'pointer':'';};
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();toggle();}});
 scrub.oninput=()=>{t=scrub.value/1000*DUR;draw();};
 if(reduce)t=DUR-OUTRO-.01;
@@ -546,7 +562,10 @@ function fit(){const r=cv.getBoundingClientRect();const k=Math.min(2,Math.max(1,
   if(Math.abs(k-SC)>.01){SC=k;cv.width=Math.round(W*k);cv.height=Math.round(H*k);draw();}}
 if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);addEventListener('resize',fit);fit();
 setIcon();
-artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;requestAnimationFrame(loop);});
+artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;
+  // try to start with sound; a blocked autoplay leaves the big button up instead (reduced motion: wait for a click)
+  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>showBig(true));
+  requestAnimationFrame(loop);});
 draw();
 </script>
 

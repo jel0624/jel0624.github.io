@@ -103,3 +103,54 @@ span.highlight {
 // ... Otherwise it really bloats up the top of the CSS file and makes it difficult to find the start
 //@import "highlights";
 //@import "svg-icons";
+
+/* Paper thumbnail that opens the motion abstract: a play badge always, a "Watch video" button on hover/focus */
+.thumb-video {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.thumb-video img { display: block; }
+.thumb-video::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(14, 19, 32, .72) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M5.5 3.2v9.6L13 8z'/%3E%3C/svg%3E") center / 13px no-repeat;
+  transition: opacity .15s ease-out;
+}
+.thumb-video__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 19, 32, .5);
+  opacity: 0;
+  transition: opacity .15s ease-out;
+}
+.thumb-video__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px 8px 11px;
+  border-radius: 999px;
+  background: #fff;
+  color: #1772d0;
+  font: 700 13px/1 'Lato', Verdana, Helvetica, sans-serif;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+.thumb-video__cta svg { width: 11px; height: 11px; fill: currentColor; }
+.thumb-video:hover .thumb-video__overlay,
+.thumb-video:focus-visible .thumb-video__overlay { opacity: 1; }
+.thumb-video:hover::after,
+.thumb-video:focus-visible::after { opacity: 0; }
+.thumb-video:focus-visible { outline: 2px solid #f09228; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .thumb-video::after, .thumb-video__overlay { transition: none; }
+}
