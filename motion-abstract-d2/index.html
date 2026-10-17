@@ -531,9 +531,9 @@ window.__render=render;window.__DUR=DUR;
 // ---------- player ----------
 const scrub=document.getElementById('scrub'),timeEl=document.getElementById('time'),playBtn=document.getElementById('play'),icon=document.getElementById('icon'),chapEl=document.getElementById('chapters');
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;draw();};chapEl.appendChild(b);});
+scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;seek=true;draw();};chapEl.appendChild(b);});
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let t=0,playing=false,last=null; // starts once we know whether the browser lets audio play
+let t=0,playing=false,last=null,seek=false; // seek: the viewer moved the film, so move the audio too // starts once we know whether the browser lets audio play
 function setIcon(){icon.innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/>':'<path d="M3 1 L13 7 L3 13 Z"/>';playBtn.setAttribute('aria-label',playing?'Pause':'Play');}
 function draw(){render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
   scenes.forEach((s,i)=>document.getElementById('chap'+i).setAttribute('aria-current',t>=s.start&&t<s.start+s.dur?'true':'false'));}
@@ -549,14 +549,15 @@ function setVol(v,save){vol=Math.min(1,Math.max(0,v));au.volume=vol*vol;volEl.va
 function soundLabel(){const off=au.muted||vol===0,w1='<path d="M10.3 6a2.8 2.8 0 0 1 0 4"/>',w2='<path d="M12.3 4a5.6 5.6 0 0 1 0 8"/>';
   volIcon.innerHTML='<path class="spk" d="M2 6h2.5L8 3v10L4.5 10H2z"/>'+(off?'<path d="M11 6l4 4M15 6l-4 4"/>':vol>.45?w1+w2:w1);
   soundBtn.setAttribute('aria-label',off?'Unmute':'Mute');soundBtn.title=(off?'Unmute':'Mute')+' (M)';}
-function syncAudio(){try{if(playing){if(Math.abs(au.currentTime-t)>.25)au.currentTime=t;if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
+function syncAudio(){try{if(playing){if(seek||(au.paused&&Math.abs(au.currentTime-t)>.3)){au.currentTime=t;seek=false;}if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
 setVol(vol);if(au.volume===1&&vol<1)volEl.hidden=true;
 volEl.oninput=()=>{setVol(volEl.value/100,true);if(vol>0&&au.muted){au.muted=false;blocked=false;soundLabel();syncAudio();}};
 soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
 big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
 const REST=()=>DUR-OUTRO-.01;
-function loop(ts){if(playing){if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
-function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05)t=0;}setIcon();}
+// the audio is the master clock while it plays (re-seeking it to follow the frames made the sound choppy on iPhone)
+function loop(ts){if(playing){if(!seek&&!au.paused&&!au.seeking&&au.readyState>=2)t=au.currentTime;else if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
+function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05){t=0;seek=true;}}setIcon();}
 window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
 // the QR code on the closing slide is also a link to the paper
 const PAPER='https://doi.org/10.1038/s41586-021-04055-4',stage=document.getElementById('stage');
@@ -579,7 +580,7 @@ fsBtn.onclick=()=>setFull(!isFull());fsx.onclick=e=>{e.stopPropagation();setFull
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{fit();fsLabel();}));
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='f'||e.key==='F'){e.preventDefault();setFull(!isFull());}else if(e.key==='m'||e.key==='M'){e.preventDefault();soundBtn.click();}else if(e.key==='Escape'&&stage.classList.contains('is-full'))setFull(false);});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();toggle();}});
-scrub.oninput=()=>{t=scrub.value/1000*DUR;draw();};
+scrub.oninput=()=>{t=scrub.value/1000*DUR;seek=true;draw();};
 if(reduce)t=DUR-OUTRO-.01;
 // match the canvas backing store to its on-screen size so text and lines stay sharp on high-density screens
 function fit(){const r=cv.getBoundingClientRect();const k=Math.min(2,Math.max(1,r.width*(window.devicePixelRatio||1)/W));
