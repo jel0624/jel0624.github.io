@@ -44,6 +44,8 @@ button { font: inherit; color: inherit; }
 #play:focus-visible, .chap:focus-visible, #volume:focus-visible, #scrub:focus-visible, .bigplay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px 14px 20px; border: 0; border-radius: 999px; background: #f5f6f9; color: #0e1320; font: 600 clamp(15px, 2.2vw, 20px)/1 var(--sans); cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.45); transition: transform .15s ease-out; }
 .bigplay:hover { transform: translate(-50%, -50%) scale(1.04); }
+.bigplay.tap { left: auto; top: auto; right: 16px; bottom: 16px; transform: none; font-size: 15px; padding: 10px 16px 10px 13px; opacity: .94; }
+.bigplay.tap:hover { transform: scale(1.04); }
 /* full screen: the stage letterboxes the 16:9 film on black; .is-full is the fallback where the Fullscreen API is missing (iPhone) */
 .iconbtn { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--fg); }
 .iconbtn svg, .fsx svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -547,6 +549,10 @@ function draw(){if(!window.__ready){ctx.setTransform(SC,0,0,SC,0,0);ctx.fillStyl
 const au=document.getElementById('narr'),soundBtn=document.getElementById('sound'),big=document.getElementById('bigplay');au.muted=false;
 // sound is on by default; if the browser blocks audio before a click, hold the film at its start behind a play-with-sound button
 const showBig=on=>{big.hidden=!on;};let blocked=false;
+// muted autostart: 'Tap for sound' pill in the corner instead of the big play button
+let mutedStart=false;const PLAYSVG=big.firstChild.innerHTML;
+const showTap=on=>{big.hidden=!on;big.classList.toggle('tap',on);big.firstChild.innerHTML=on?'<path d="M2 6h2.5L8 3v10L4.5 10H2z"/><path d="M10.3 6a2.8 2.8 0 0 1 0 4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.3 4a5.6 5.6 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.6"/>':PLAYSVG;big.lastChild.textContent=on?'Tap for sound':'Play with sound';};
+const unmuteStart=()=>{mutedStart=false;showTap(false);au.muted=false;blocked=false;soundLabel();syncAudio();};
 // volume: the mix is about -16 LUFS, so start at half amplitude (-6 dB); the slider is perceptual (volume = slider squared)
 // and each viewer's level is remembered. iOS ignores audio.volume, so the slider hides there and the device keys do it.
 const volEl=document.getElementById('volume'),volIcon=document.getElementById('volicon'),VOL0=.7;let vol=VOL0;
@@ -559,8 +565,8 @@ function soundLabel(){const off=au.muted||vol===0,w1='<path d="M10.3 6a2.8 2.8 0
 function syncAudio(){try{if(playing){if(seek||(au.paused&&Math.abs(au.currentTime-t)>.3)){au.currentTime=t;seek=false;}if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
 setVol(vol);if(au.volume===1&&vol<1)volEl.hidden=true;
 volEl.oninput=()=>{setVol(volEl.value/100,true);if(vol>0&&au.muted){au.muted=false;blocked=false;soundLabel();syncAudio();}};
-soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
-big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
+soundBtn.onclick=()=>{if(mutedStart&&au.muted){unmuteStart();return;}if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
+big.onclick=e=>{e.stopPropagation();if(mutedStart){unmuteStart();return;}au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
 const REST=()=>DUR-OUTRO-.01;
 // the audio is the master clock while it plays (re-seeking it to follow the frames made the sound choppy on iPhone)
 // audio.currentTime only updates in coarse steps in some browsers, so the film runs on frame time and is steered gently toward the
@@ -574,7 +580,7 @@ window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame e
 const PAPER='https://doi.org/10.1038/s41586-021-04055-4',stage=document.getElementById('stage');
 function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+NARR[NARR.length-1].sent[2]+.5)return false;const r=cv.getBoundingClientRect();
   const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;return x>=1380&&x<=1780&&y>=300&&y<=845;}
-playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}toggle();};
+playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}if(mutedStart){unmuteStart();return;}toggle();};
 stage.onmousemove=e=>{stage.style.cursor=overQR(e)?'pointer':'';};
 // full screen: the real Fullscreen API where it exists, otherwise a fixed full-window stage
 const fsBtn=document.getElementById('fs'),fsx=document.getElementById('fsx');
@@ -601,7 +607,8 @@ if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);addEventListener('r
 setIcon();
 artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;
   // try to start with sound; a blocked autoplay leaves the big button up instead (reduced motion: wait for a click)
-  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>showBig(true));
+  // play right away (Jay): with sound if the browser allows it, otherwise muted with a 'Tap for sound' pill (reduced motion: wait for a click)
+  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>{au.muted=true;soundLabel();mutedStart=true;playing=true;setIcon();showTap(true);au.play().catch(()=>{});});
   requestAnimationFrame(loop);});
 draw();
 </script>
