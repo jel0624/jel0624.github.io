@@ -607,8 +607,8 @@ if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);addEventListener('r
 setIcon();
 artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;
   // try to start with sound; a blocked autoplay leaves the big button up instead (reduced motion: wait for a click)
-  // play right away (Jay): with sound if the browser allows it, otherwise muted with a 'Tap for sound' pill (reduced motion: wait for a click)
-  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>{au.muted=true;soundLabel();mutedStart=true;playing=true;setIcon();showTap(true);au.play().catch(()=>{});});
+  // play right away (Jay): with sound if the browser allows it, otherwise muted until the first tap on the film or the speaker (no pill; reduced motion: wait for a click)
+  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>{au.muted=true;soundLabel();mutedStart=true;playing=true;setIcon();au.play().catch(()=>{});});
   requestAnimationFrame(loop);});
 draw();
 </script>
