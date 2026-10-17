@@ -99,7 +99,15 @@ button { font: inherit; color: inherit; }
 </div>
 
 <script>
-const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const cv = document.getElementById('cv');let ctx = cv.getContext('2d');
+// layered(a, fn): draw a group at full opacity on an offscreen layer, then fade the whole layer at once, so shapes inside a
+// fading group never show what is behind them (Jay: lines must not show through fading circles). Layers nest (a small pool).
+const LAYERS=[];let LDEPTH=0;
+function layered(a,fn){if(a<=0)return;const ga=ctx.globalAlpha*a;if(ga>.999){ctx.save();fn();ctx.restore();return;}
+  const L=LAYERS[LDEPTH]||(LAYERS[LDEPTH]=document.createElement('canvas'));if(L.width!==cv.width||L.height!==cv.height){L.width=cv.width;L.height=cv.height;}
+  const main=ctx,lc=L.getContext('2d');lc.setTransform(1,0,0,1,0,0);lc.globalAlpha=1;lc.clearRect(0,0,L.width,L.height);lc.setTransform(main.getTransform());
+  ctx=lc;LDEPTH++;try{fn();}finally{LDEPTH--;ctx=main;}
+  main.save();main.setTransform(1,0,0,1,0,0);main.globalAlpha=ga;main.drawImage(L,0,0);main.restore();}
 let SC = 1; // backing-store scale: the film is authored at 1920x1080 and drawn at the screen's pixel density (up to 2x)
 const W = 1920, H = 1080;
 const C = { bg:'#0e1320', ink:'#eef0f5', mute:'#8f98ad', faint:'#273049', grid:'#1b2234',
@@ -181,29 +189,36 @@ function ltp(x,y,col,a,p=1,S=9){const G=GEOM.ltp,q=ease(p),lw=3.6/S,fill='#1e4a3
   const [a0,a1,a2]=G.arrow;arrow(x+a0*S,y+a1*S,x+a2*S,y+a1*S,'#8fe0b0',Math.max(2.5,.4*S),a*seg(p,0,.6),seg(p,0,.6));
   T('LTP',x+(a0+a2)/2*S,y+(a1-1.6)*S,{size:Math.round(3.4*S),c:col,align:'center',a});}
 // network as in the figure; activity sweeps from the input trace across the nodes to the output spike, over and over
-function network(x,y,a,u,S=9){const G=GEOM.net;ctx.save();ctx.globalAlpha*=a;
+function network(x,y,a,u,S=9,dim=0){if(a<=0)return;if(ctx.globalAlpha*a<.999)return layered(a,()=>network(x,y,1,u,S,dim));
+  const G=GEOM.net;ctx.save();const lo=1-dim;
   const per=2.4,w=(u%per)/per*1.5-.25;                               // sweep position, input (0) -> output (1)
   const at=px=>Math.exp(-Math.pow((w-(px/G.r*.5+.5))/.16,2));
   const P=([px,py])=>[x+px*S,y+py*S];
   // input trace with a bright packet riding it
   const inp=G.inp.map(P),out=G.out.map(P);
-  line(inp,C.dyn,2.4,.85);const k0=Math.floor(clamp((w+.25)/.3)*(inp.length-1));if(w<.1)line(inp.slice(Math.max(0,k0-40),k0+1),'#f1c6ff',3.4,1);
-  const spike=Math.exp(-Math.pow((w-1.08)/.08,2));line(out,mixHex('#bd63d1','#f6d6ff',spike),2.4+1.6*spike,.85+.15*spike);
-  G.arrows.forEach(([px,py])=>{const [qx,qy]=P([px,py]);ctx.save();ctx.fillStyle='#d9b3e6';ctx.globalAlpha*=.8;ctx.beginPath();ctx.moveTo(qx+S*.95,qy);ctx.lineTo(qx,qy-S*.55);ctx.lineTo(qx,qy+S*.55);ctx.fill();ctx.restore();});
+  line(inp,C.dyn,2.4,.85*lo);const k0=Math.floor(clamp((w+.25)/.3)*(inp.length-1));if(w<.1)line(inp.slice(Math.max(0,k0-40),k0+1),'#f1c6ff',3.4,lo);
+  const spike=Math.exp(-Math.pow((w-1.08)/.08,2));line(out,mixHex('#bd63d1','#f6d6ff',spike),2.4+1.6*spike,(.85+.15*spike)*lo);
+  G.arrows.forEach(([px,py])=>{const [qx,qy]=P([px,py]);ctx.save();ctx.fillStyle='#d9b3e6';ctx.globalAlpha*=.8*lo;ctx.beginPath();ctx.moveTo(qx+S*.95,qy);ctx.lineTo(qx,qy-S*.55);ctx.lineTo(qx,qy+S*.55);ctx.fill();ctx.restore();});
   circle(x,y,G.r*S,'#21182c',1,C.dyn,Math.max(2,.44*S));
   G.edges.forEach(([x0,y0,x1,y1,pur])=>{const b=pur?(at(x0)+at(x1))/2:0;line([P([x0,y0]),P([x1,y1])],pur?mixHex('#bd63d1','#f6d6ff',b):'#c9cdd8',pur?.55*S+2*b:.44*S,pur?1:.8);});
   G.nodes.forEach(([nx,ny,r,pur])=>{const b=Math.max(at(nx),pur?.35:0);const [cx,cy]=P([nx,ny]);
     ctx.save();ctx.shadowColor='#d77cf0';ctx.shadowBlur=22*b;ctx.fillStyle=mixHex('#16111f','#efc2ff',b);ctx.beginPath();ctx.arc(cx,cy,r*S,0,Math.PI*2);ctx.fill();ctx.restore();
     circle(cx,cy,r*S,null,1,pur?C.dyn:'#c9cdd8',Math.max(2,.44*S));});
+  // dim: an opaque-stage overlay over the disc, so faded nodes never let the edges show through
+  if(dim>0)circle(x,y,G.r*S+Math.max(2,.44*S),C.bg,dim);
   ctx.restore();}
 // a figure inset on a paper-white card (the PDF2 renders have a white background)
 function card(x,y,w,h,a){ctx.save();ctx.globalAlpha*=a;ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=30;ctx.shadowOffsetY=10;rect(x,y,w,h,'#fefefe',1,14);ctx.restore();}
 function qr(x,y,size,a){const n=QR.length,q=4,m=size/(n+2*q);card(x,y,size,size,a);ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#0e1320';
   QR.forEach((row,i)=>{for(let j=0;j<n;j++)if(row[j]==='1')ctx.fillRect(x+(j+q)*m,y+(i+q)*m,m+.5,m+.5);});ctx.restore();}
 
+function glow(x,y,r,col,a){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);ctx.restore();}
+function pill(x,y,label,col,a){if(a<=0)return 0;ctx.save();ctx.font=`600 28px ${SANS}`;const w=ctx.measureText(label).width+52;ctx.restore();
+  rect(x,y-30,w,60,col,a,30);T(label,x+w/2,y+2,{align:'center',base:'middle',size:28,w:600,c:'#0e1320',a});return w;}
+
 // ---------- scenes ----------
 const scenes = [
-{ name:'Title', dur:6, draw(u){
+{ name:'Title', dur:7.5, draw(u){
   // ambient: two value traces, one slow and one switching
   ctx.save();ctx.globalAlpha=.55;
   const pts1=[],pts2=[];for(let i=0;i<=200;i++){const x=i/200*W;const ph=x/W*6+u*.35;
@@ -289,47 +304,88 @@ const scenes = [
   T('long ITI',cx,cy+120,{f:SANS,size:24,c:C.mute,align:'center',a:ap});T('or 1-day break',cx,cy+152,{f:SANS,size:24,c:C.mute,align:'center',a:ap});
   caption('Dynamic experts lick to both cues after a pause. Stable experts keep values for up to 8 days.',u,8);
 }},
-{ name:'Two routes', dur:14, draw(u){
+{ name:'Two routes', dur:44.67, draw(u){
+  // v27 (Jay): plasticity route first, then persistent activity, each explained and animated on its own.
+  // Visual clock = audio clock here (CUES[4] = NARR[4].sent); S[k] is when sentence k starts.
+  const S=NARR[4].sent;
   header(4,'RECURRENT NETWORKS','Two routes to faster learning',u);
-  const ap=seg(u,.6,1.3);
-  // panel divider
-  line([[960,300],[960,900]],C.faint,2,ap);
-  // LEFT: synaptic
-  T('Synaptic plasticity',120,320,{size:36,w:600,c:C.pink,a:ap});
-  T('value stored in weights · short learning window',120,362,{size:24,c:C.mute,a:ap});
-  const nA=[260,520],nB=[260,720],nV=[640,620];
-  // weights change slowly over trials 2..10
-  const steps=Math.floor(clamp((u-2)/0.7,0,11)),wf=steps/11;
+  // 0: networks that keep updating their weights as they learn
+  const ia=seg(u,.6,1.4)*(1-seg(u,S[1]+.2,S[1]+1));
+  if(ia>0){network(960,600,ia,u,16);T('odor',690,560,{size:26,c:C.mute,align:'right',a:ia});T('value',1230,560,{size:26,c:C.mute,a:ia});
+    T('recurrent neural network',960,760,{size:30,w:600,c:C.ink,align:'center',a:ia});
+    T('its weights keep updating, trial after trial',960,800,{size:26,c:C.mute,align:'center',a:seg(u,2.2,3)*ia});}
+  // 1: two ways to get faster -> two panels; 2..4 the first route; 5..8 the second; 9 only the second matches
+  const pa=seg(u,S[1]+.4,S[1]+1.2);
+  const L=pa*(u<S[2]?.45:1)*(u<S[5]?1:lerp(1,.32,seg(u,S[5],S[5]+.8)));
+  const R=pa*(u<S[5]?.3:1);
+  line([[960,300],[960,900]],C.faint,2,pa);
+  T('1 · Synaptic plasticity',120,320,{size:36,w:600,c:C.pink,a:L});
+  T('value stored in synaptic weights',120,362,{size:24,c:C.mute,a:L});
+  T('2 · Persistent activity',1000,320,{size:36,w:600,c:C.dyn,a:R});
+  T('value read from the network state',1000,362,{size:24,c:C.mute,a:R});
+  // ---- route 1: weights A->value and B->value (one layer, so the dimmed diagram stays opaque inside) ----
+  layered(L,()=>{const L=1;
+  const la=L*seg(u,S[3],S[3]+.8);
+  const nA=[230,520],nB=[230,720],nV=[530,620];
+  const t0=S[4]+.6,per=.45,steps=Math.floor(clamp((u-t0)/per,0,10)),wf=steps/10;
   const wA=lerp(16,3,ease(wf)),wB=lerp(3,16,ease(wf));
-  line([nA,nV],C.pink,wA,ap);line([nB,nV],C.pink,wB,ap);
-  if(u>2&&u<9.7){const fl=1-((u-2)/0.7%1);T('Δw',450,545,{f:MONO,size:28,c:C.pink,a:ap*fl});}
-  circle(...nA,38,C.A,ap);T('A',nA[0],nA[1]+2,{align:'center',base:'middle',size:34,w:600,a:ap});
-  circle(...nB,38,C.B,ap);T('B',nB[0],nB[1]+2,{align:'center',base:'middle',size:34,w:600,a:ap});
-  circle(...nV,46,C.bg,ap,C.ink,4);T('value',nV[0],nV[1]+2,{align:'center',base:'middle',size:24,a:ap});
-  T(`trial ${steps}`,640,780,{f:MONO,size:24,c:C.mute,align:'center',a:ap*seg(u,2,2.4)});
-  T('slow to reverse, durable across pauses',120,860,{size:28,c:C.ink,a:seg(u,9.5,10.2)});
-  // RIGHT: persistent activity state space
-  const px=1020;
-  T('Persistent activity',px+20,320,{size:36,w:600,c:C.dyn,a:ap});
-  T('value read from network state · long learning window',px+20,362,{size:24,c:C.mute,a:ap});
+  line([nA,nV],C.pink,wA,la);line([nB,nV],C.pink,wB,la);
+  if(u>t0&&u<t0+10*per){const fl=1-((u-t0)/per%1);T('Δw',380,560,{f:MONO,size:28,c:C.pink,a:la*fl});}
+  T('w',372,532,{f:MONO,size:22,c:C.mute,a:la*(u<t0?1:0)});
+  circle(...nA,38,C.A,la);T('A',nA[0],nA[1]+2,{align:'center',base:'middle',size:34,w:600,a:la});
+  circle(...nB,38,C.B,la);T('B',nB[0],nB[1]+2,{align:'center',base:'middle',size:34,w:600,a:la});
+  circle(...nV,46,C.bg,la,C.ink,4);T('value',nV[0],nV[1]+2,{align:'center',base:'middle',size:24,a:la});
+  // value of A and B across trials: 3 trials before the reversal, 10 after, a long pause, 3 more
+  const X0=640,X1=920,YT=470,YB=740,slot=(X1-X0)/18,ya=v=>YB-(YB-YT)*v,pl=L*seg(u,S[4],S[4]+.6);
+  line([[X0,YT-10],[X0,YB],[X1,YB]],C.mute,2.5,pl);T('trials →',X1,YB+34,{size:20,c:C.mute,align:'right',a:pl});
+  const rv=X0+slot*2.5;line([[rv,YT-10],[rv,YB]],C.warn,2,pl,[6,6]);T('reversal',rv,YT-20,{size:20,c:C.warn,align:'center',a:pl});
+  const vA=k=>k<3?.9:k<13?lerp(.9,.1,ease((k-2)/10)):.1;
+  const shown=u<t0?2:2+steps,afterP=Math.floor(clamp((u-(t0+10*per+2.2))/.5,0,3));
+  const ptsA=[],ptsB=[];for(let k=0;k<=Math.min(12,shown);k++){const x=X0+slot*(k+.5);ptsA.push([x,ya(vA(k))]);ptsB.push([x,ya(1-vA(k))]);}
+  if(ptsA.length>1){line(ptsA,C.A,4,pl);line(ptsB,C.B,4,pl);}
+  ptsA.forEach(p=>circle(p[0],p[1],5,C.A,pl));ptsB.forEach(p=>circle(p[0],p[1],5,C.B,pl));
+  // the pause, then the values are still there
+  const pz=seg(u,t0+10*per+.3,t0+10*per+1);
+  if(pz>0){const gx=X0+slot*14;line([[gx-slot*.9,YB-6],[gx+slot*.9,YB-6]],C.mute,2,L*pz,[4,6]);
+    const cx=gx,cy=YT-62,ang=-Math.PI/2+lin(u,t0+10*per+.3,t0+10*per+2.2)*Math.PI*4;circle(cx,cy,22,null,L*pz,C.mute,3);line([[cx,cy],[cx+15*Math.cos(ang),cy+15*Math.sin(ang)]],C.ink,3,L*pz);
+    T('long pause',gx,YT-20,{size:20,c:C.mute,align:'center',a:L*pz});
+    for(let k=0;k<afterP;k++){const x=X0+slot*(15.5+k);circle(x,ya(.1),5,C.A,L);circle(x,ya(.9),5,C.B,L);}
+    if(afterP>0){line([[X0+slot*15.5,ya(.1)],[X0+slot*(15.5+afterP-1),ya(.1)]],C.A,4,L);line([[X0+slot*15.5,ya(.9)],[X0+slot*(15.5+afterP-1),ya(.9)]],C.B,4,L);}}
+  T('slow to reverse',120,850,{size:30,w:600,c:C.ink,a:L*seg(u,t0+2.2,t0+2.9)});
+  T('but durable across pauses',120,892,{size:30,w:600,c:C.ink,a:L*seg(u,t0+10*per+2.6,t0+10*per+3.3)});
+  });
+  // ---- route 2: context held in persistent activity (one layer) ----
+  layered(R,()=>{const R=1;
+  const ra=R*seg(u,S[6],S[6]+.8);
   const cAx=1180,cBx=1620,cy=600;
-  line([[cAx-60,cy],[cBx+60,cy]],C.faint,3,ap,[10,10]);T('context axis',(cAx+cBx)/2,cy+100,{f:SANS,size:22,c:C.mute,align:'center',a:ap});
-  for(let i=0;i<26;i++){circle(cAx+(rnd(i)-.5)*110,cy+(rnd(i+50)-.5)*110,6,C.A,ap*.35);circle(cBx+(rnd(i+9)-.5)*110,cy+(rnd(i+80)-.5)*110,6,C.B,ap*.35);}
-  T('context A',cAx,cy-90,{f:SANS,size:22,c:C.A,align:'center',a:ap});T('context B',cBx,cy-90,{f:SANS,size:22,c:C.B,align:'center',a:ap});
-  // state: jump after outcome at u=3, drift during long ITI u 7.5..10.5
-  const jump=seg(u,3,3.8),drift=seg(u,7.6,10.6);
-  let sx=lerp(cAx,cBx,jump); sx=lerp(sx,(cAx+cBx)/2,drift*.95);
-  const trail=[];for(let k=0;k<20;k++){const uu=u-k*.05;let x=lerp(cAx,cBx,seg(uu,3,3.8));x=lerp(x,(cAx+cBx)/2,seg(uu,7.6,10.6)*.95);trail.push([x,cy+Math.sin(uu*3)*6]);}
-  line(trail,C.ink,3,ap*.4);
-  circle(sx,cy+Math.sin(u*3)*6,20,C.ink,ap);
-  if(u>2.8&&u<4.2)T('one outcome',1400,cy-150,{f:SANS,size:24,c:C.ink,align:'center',a:clamp(Math.min(u-2.8,4.2-u)*3)});
-  if(u>7.4)T('long ITI: state relaxes',1400,cy-150,{f:SANS,size:24,c:C.ink,align:'center',a:seg(u,7.4,8)});
+  line([[cAx-60,cy],[cBx+60,cy]],C.faint,3,ra,[10,10]);T('context axis',(cAx+cBx)/2,cy+100,{f:SANS,size:22,c:C.mute,align:'center',a:ra});
+  for(let i=0;i<26;i++){circle(cAx+(rnd(i)-.5)*110,cy+(rnd(i+50)-.5)*110,6,C.A,ra*.35);circle(cBx+(rnd(i+9)-.5)*110,cy+(rnd(i+80)-.5)*110,6,C.B,ra*.35);}
+  T('context A',cAx,cy-90,{f:SANS,size:22,c:C.A,align:'center',a:ra});T('context B',cBx,cy-90,{f:SANS,size:22,c:C.B,align:'center',a:ra});
+  const j0=S[7]+1.6,d0=S[8]+.6,jumpAt=uu=>seg(uu,j0,j0+.7),driftAt=uu=>seg(uu,d0,d0+4.2);
+  const posAt=uu=>{let x=lerp(cAx,cBx,jumpAt(uu));return lerp(x,(cAx+cBx)/2,driftAt(uu)*.95);};
+  const trail=[];for(let k=0;k<20;k++){const uu=u-k*.05;trail.push([posAt(uu),cy+Math.sin(uu*3)*6]);}
+  line(trail,C.ink,3,ra*.4);
+  const sx=posAt(u);circle(sx,cy+Math.sin(u*3)*6,20,C.ink,ra);glow(sx,cy,60,'rgba(238,240,245,0.6)',ra*.5);
+  T('network state',sx,cy+52,{size:20,c:C.mute,align:'center',a:ra*(1-seg(u,j0-.4,j0))});
+  // the outcome that moves it
+  const oa=seg(u,j0-.8,j0-.3)*(1-seg(u,j0+1.6,j0+2.2));
+  if(oa>0){rect(1360,cy-175,80,56,C.B,ra*oa,6);T('B',1400,cy-146,{align:'center',base:'middle',size:30,w:600,a:ra*oa});drop(1480,cy-147,20,ra*oa);
+    T('one outcome',1400,cy-190,{f:SANS,size:24,c:C.ink,align:'center',a:ra*oa});}
+  T('fast',1000,850,{size:30,w:600,c:C.ink,a:R*seg(u,j0+.8,j0+1.4)});
+  // long pause: the state relaxes to the middle and the values blur
+  const pa2=seg(u,d0-.2,d0+.4);
+  if(pa2>0){const cx=1400,cyy=cy-148,ang=-Math.PI/2+lin(u,d0,d0+4.2)*Math.PI*4;circle(cx,cyy,24,null,R*pa2,C.mute,3);line([[cx,cyy],[cx+16*Math.cos(ang),cyy+16*Math.sin(ang)]],C.ink,3,R*pa2);
+    T('long pause: the state relaxes',1400,cyy-38,{f:SANS,size:24,c:C.ink,align:'center',a:R*pa2});}
+  T('but forgetful over pauses',1000,892,{size:30,w:600,c:C.ink,a:R*seg(u,d0+3,d0+3.7)});
   // readout bars
-  const pos=(sx-cAx)/(cBx-cAx),vA=1-pos,vB=pos;
-  [[vA,C.A,'A'],[vB,C.B,'B']].forEach(([v,col,l],i)=>{const bx=1300+i*140;rect(bx,900-110*v,90,110*v,col,ap,4);T(`value ${l}`,bx+45,930,{f:SANS,size:22,c:C.mute,align:'center',a:ap});});
-  caption('Only the persistent-activity route reproduced the mice: fast updating, and forgetting over long pauses.',u,11);
+  const pos=(sx-cAx)/(cBx-cAx);
+  [[1-pos,C.A,'A'],[pos,C.B,'B']].forEach(([v,col,l],i)=>{const bx=1560+i*120;rect(bx,800-90*v,80,90*v,col,ra,4);T(`value ${l}`,bx+40,826,{f:SANS,size:20,c:C.mute,align:'center',a:ra});});
+  });
+  // 9: only the second route matches the mice
+  const ok=seg(u,S[9],S[9]+.7);
+  if(ok>0){pill(1000,960,'reproduces the mice',C.dyn,ok);T('fast updating, and forgetting over long pauses',1360,970,{size:26,c:C.mute,a:ok});}
 }},
-{ name:'Causal tests', dur:12, draw(u){
+{ name:'Causal tests', dur:13, draw(u){
   header(5,'CAUSAL TESTS','Plasticity builds the fast mode but does not run it',u);
   const c1=1150,c2=1560,ah=seg(u,.6,1.2);
   T('initial learning',c1,300,{size:28,w:600,c:C.stable,align:'center',a:ah});T('stable task, day 1',c1,334,{size:22,c:C.mute,align:'center',a:ah});
@@ -348,6 +404,7 @@ const scenes = [
     chip(c1,y,r[3],r[5],a);chip(c2,y,r[4],r[6],a);
   });
   caption('Blocking plasticity hurts initial learning, not expert reversals. Blocking it during training prevents the fast mode.',u,7.4,990);
+  const al=seg(u,10,10.7);T('✓',120,912,{size:40,w:600,c:C.stable,a:al});T('All experiments aligned with the predictions from the modeling.',172,910,{f:DISP,size:40,it:true,a:al});
 }},
 { name:'Recordings', dur:10, draw(u){
   header(6,'NEUROPIXELS','Amygdala and hippocampus hold the context',u);
@@ -471,7 +528,7 @@ const scenes = [
     T('Δweight-based learning',830,y+82,{size:28,c:C.stable,align:'center',a});
     arrow(1010,y-14,1110,y-14,'#6b7385',8,a,seg(u,r.t0+.8,r.t0+1.4));
     const fade=r.old?lerp(1,.28,X):1;
-    network(1400,y-24,a*fade,u,8);
+    network(1400,y-24,a,u,8,1-fade);
     T('Δactivity-based learning',1400,y+82,{size:28,c:C.dyn,align:'center',a:a*(r.old?lerp(1,.4,X):1)});
     if(r.old&&X>0){const p1=clamp(X*2),p2=clamp(X*2-1);
       line([[1290,y-130],[lerp(1290,1510,p1),lerp(y-130,y+100,p1)]],C.A,16,.92);
@@ -492,7 +549,7 @@ const scenes = [
   const tb=seg(u,1.2,2);
   pair(120,600,true,tb,'rgba(189,99,209,.14)');pair(350,600,false,tb,'rgba(189,99,209,.14)');
   arrow(300,585,370,585,'#7c8497',3,tb*.9,1);arrow(370,805,300,805,'#7c8497',3,tb*.9,1);
-  T('task 2',120,860,{size:30,w:600,c:C.dyn,a:tb});T('serial reversal',230,860,{size:24,c:C.mute,a:tb});
+  T('task 2',120,860,{size:30,w:600,c:C.dyn,a:tb});T('serial reversal',230,860,{size:24,c:C.mute,a:tb});T('mice must stay flexible',120,896,{size:24,c:C.dyn,a:seg(u,4.6,5.3)});
   // AUROC, young vs old (values read off the prelim figure)
   const x0=880,yb=900,yt=400,v=f=>yb-(yb-yt)*f,ca=seg(u,.6,1.4);
   line([[x0,yt],[x0,yb]],C.ink,3,ca);[0,.25,.5,.75,1].forEach(f=>line([[x0-12,v(f)],[x0,v(f)]],C.ink,3,ca));
@@ -536,8 +593,8 @@ const scenes = [
   T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,7,8)});
 }}];
 // narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
-const NARR=[{"dur": 7.67, "sent": [0.5, 3.4]}, {"dur": 19.18, "sent": [0.5, 2.87, 6.09, 11.8, 15.14]}, {"dur": 18.21, "sent": [0.5, 2.52, 6.11, 8.91, 13.13, 15.97]}, {"dur": 12.63, "sent": [0.5, 2.39, 7.35]}, {"dur": 31.44, "sent": [0.5, 6.14, 8.45, 13.38, 17.62, 22.18, 28.34]}, {"dur": 26.18, "sent": [0.5, 2.17, 7.18, 8.82, 18.25, 22.12]}, {"dur": 14.2, "sent": [0.5, 6.84, 9.42]}, {"dur": 25.86, "sent": [0.5, 2.7, 12.41, 22.14]}, {"dur": 13.37, "sent": [0.5, 3.6, 5.32, 9.94]}, {"dur": 13.91, "sent": [0.5, 6.42]}, {"dur": 16.84, "sent": [0.5, 6.24, 9.52]}, {"dur": 20.7, "sent": [0.5, 7.89]}];
-const CUES=[[0, 0.6], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0, 1.0, 2.0, 2.6, 3.0, 7.4, 11], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
+const NARR=[{"dur": 9.08, "sent": [2.0, 4.93]}, {"dur": 24.364, "sent": [0.5, 8.3, 11.3, 16.82, 19.92]}, {"dur": 18.98, "sent": [0.5, 3.28, 6.5, 9.92, 14.54, 16.85]}, {"dur": 13.22, "sent": [0.5, 2.62, 8.12]}, {"dur": 44.67, "sent": [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87]}, {"dur": 32.66, "sent": [0.5, 2.59, 8.1, 9.43, 19.64, 23.16, 27.08]}, {"dur": 14.94, "sent": [0.5, 7.01, 9.36]}, {"dur": 24.06, "sent": [0.5, 2.14, 11.12, 20.94]}, {"dur": 13.9, "sent": [0.5, 4.42, 5.79, 10.27]}, {"dur": 13.8, "sent": [0.5, 6.44]}, {"dur": 20.04, "sent": [0.5, 6.67, 12.83]}, {"dur": 20.59, "sent": [0.5, 7.88]}];
+const CUES=[[1.5, 2.1], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4, 10.0], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
 let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
   const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
 const DUR=acc,OUTRO=2.5;
@@ -561,11 +618,12 @@ window.__render=render;window.__DUR=DUR;
 // ---------- player ----------
 const scrub=document.getElementById('scrub'),timeEl=document.getElementById('time'),playBtn=document.getElementById('play'),icon=document.getElementById('icon'),chapEl=document.getElementById('chapters');
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;draw();};chapEl.appendChild(b);});
+scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;seek=true;draw();};chapEl.appendChild(b);});
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let t=0,playing=false,last=null; // starts once we know whether the browser lets audio play
+let t=0,playing=false,last=null,seek=false; // seek: the viewer moved the film, so move the audio too // starts once we know whether the browser lets audio play
 function setIcon(){icon.innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/>':'<path d="M3 1 L13 7 L3 13 Z"/>';playBtn.setAttribute('aria-label',playing?'Pause':'Play');}
-function draw(){render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
+// until the web fonts have loaded, show only the empty stage (otherwise the title flashes in a fallback font, then jumps)
+function draw(){if(!window.__ready){ctx.setTransform(SC,0,0,SC,0,0);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);return;}render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
   scenes.forEach((s,i)=>document.getElementById('chap'+i).setAttribute('aria-current',t>=s.start&&t<s.start+s.dur?'true':'false'));}
 const au=document.getElementById('narr'),soundBtn=document.getElementById('sound'),big=document.getElementById('bigplay');au.muted=false;
 // sound is on by default; if the browser blocks audio before a click, hold the film at its start behind a play-with-sound button
@@ -579,14 +637,15 @@ function setVol(v,save){vol=Math.min(1,Math.max(0,v));au.volume=vol*vol;volEl.va
 function soundLabel(){const off=au.muted||vol===0,w1='<path d="M10.3 6a2.8 2.8 0 0 1 0 4"/>',w2='<path d="M12.3 4a5.6 5.6 0 0 1 0 8"/>';
   volIcon.innerHTML='<path class="spk" d="M2 6h2.5L8 3v10L4.5 10H2z"/>'+(off?'<path d="M11 6l4 4M15 6l-4 4"/>':vol>.45?w1+w2:w1);
   soundBtn.setAttribute('aria-label',off?'Unmute':'Mute');soundBtn.title=(off?'Unmute':'Mute')+' (M)';}
-function syncAudio(){try{if(playing){if(Math.abs(au.currentTime-t)>.25)au.currentTime=t;if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
+function syncAudio(){try{if(playing){if(seek||(au.paused&&Math.abs(au.currentTime-t)>.3)){au.currentTime=t;seek=false;}if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
 setVol(vol);if(au.volume===1&&vol<1)volEl.hidden=true;
 volEl.oninput=()=>{setVol(volEl.value/100,true);if(vol>0&&au.muted){au.muted=false;blocked=false;soundLabel();syncAudio();}};
 soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
 big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
 const REST=()=>DUR-OUTRO-.01;
-function loop(ts){if(playing){if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
-function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05)t=0;}setIcon();}
+// the audio is the master clock while it plays (re-seeking it to follow the frames made the sound choppy on iPhone)
+function loop(ts){if(playing){if(!seek&&!au.paused&&!au.seeking&&au.readyState>=2)t=au.currentTime;else if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
+function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05){t=0;seek=true;}}setIcon();}
 window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
 // the QR code on the closing slide is also a link to the preprint
 const PAPER='https://www.biorxiv.org/content/10.64898/2025.11.30.691382',stage=document.getElementById('stage');
@@ -609,7 +668,7 @@ fsBtn.onclick=()=>setFull(!isFull());fsx.onclick=e=>{e.stopPropagation();setFull
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{fit();fsLabel();}));
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='f'||e.key==='F'){e.preventDefault();setFull(!isFull());}else if(e.key==='m'||e.key==='M'){e.preventDefault();soundBtn.click();}else if(e.key==='Escape'&&stage.classList.contains('is-full'))setFull(false);});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();toggle();}});
-scrub.oninput=()=>{t=scrub.value/1000*DUR;draw();};
+scrub.oninput=()=>{t=scrub.value/1000*DUR;seek=true;draw();};
 if(reduce)t=DUR-OUTRO-.01;
 // match the canvas backing store to its on-screen size so text and lines stay sharp on high-density screens
 function fit(){const r=cv.getBoundingClientRect();const k=Math.min(2,Math.max(1,r.width*(window.devicePixelRatio||1)/W));
