@@ -92,7 +92,7 @@ button { font: inherit; color: inherit; }
     <span id="time">0:00 / 0:00</span>
     <div class="vol"><button id="sound" class="iconbtn" aria-label="Mute" title="Mute (M)"><svg viewBox="0 0 16 16" aria-hidden="true" id="volicon"></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
     <button id="fs" class="iconbtn" aria-label="Full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
-    <audio id="narr" src="narration.mp3?v=28" preload="auto"></audio>
+    <audio id="narr" src="narration.mp3?v=29" preload="auto"></audio>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
@@ -310,7 +310,7 @@ const scenes = [
   T('long ITI',cx,cy+120,{f:SANS,size:24,c:C.mute,align:'center',a:ap});T('or 1-day break',cx,cy+152,{f:SANS,size:24,c:C.mute,align:'center',a:ap});
   caption('Dynamic experts lick to both cues after a pause. Stable experts keep values for up to 8 days.',u,8);
 }},
-{ name:'Two routes', dur:44.67, draw(u){
+{ name:'Two routes', dur:44.39, draw(u){
   // v27 (Jay): plasticity route first, then persistent activity, each explained and animated on its own.
   // Visual clock = audio clock here (CUES[4] = NARR[4].sent); S[k] is when sentence k starts.
   const S=NARR[4].sent;
@@ -607,8 +607,8 @@ const scenes = [
   T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,7,8)});
 }}];
 // narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
-const NARR=[{"dur": 9.08, "sent": [2.0, 4.93]}, {"dur": 24.364, "sent": [0.5, 8.3, 11.3, 16.82, 19.92]}, {"dur": 18.98, "sent": [0.5, 3.28, 6.5, 9.92, 14.54, 16.85]}, {"dur": 13.22, "sent": [0.5, 2.62, 8.12]}, {"dur": 44.67, "sent": [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87]}, {"dur": 31.35, "sent": [0.5, 2.24, 7.04, 8.44, 17.79, 21.31, 25.43]}, {"dur": 14.94, "sent": [0.5, 7.01, 9.36]}, {"dur": 24.06, "sent": [0.5, 2.14, 11.12, 20.94]}, {"dur": 13.9, "sent": [0.5, 4.42, 5.79, 10.27]}, {"dur": 13.8, "sent": [0.5, 6.44]}, {"dur": 20.04, "sent": [0.5, 6.67, 12.83]}, {"dur": 20.59, "sent": [0.5, 7.88]}];
-const CUES=[[1.5, 2.1], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4, 10.0], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
+const NARR=[{"dur": 9.08, "sent": [2.0, 4.93]}, {"dur": 24.364, "sent": [0.5, 8.3, 11.3, 16.82, 19.92]}, {"dur": 18.98, "sent": [0.5, 3.28, 6.5, 9.92, 14.54, 16.85]}, {"dur": 13.22, "sent": [0.5, 2.62, 8.12]}, {"dur": 44.39, "sent": [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 34.85, 40.59]}, {"dur": 31.35, "sent": [0.5, 2.24, 7.04, 8.44, 17.79, 21.31, 25.43]}, {"dur": 14.94, "sent": [0.5, 7.01, 9.36]}, {"dur": 24.06, "sent": [0.5, 2.14, 11.12, 20.94]}, {"dur": 13.9, "sent": [0.5, 4.42, 5.79, 10.27]}, {"dur": 13.8, "sent": [0.5, 6.44]}, {"dur": 20.04, "sent": [0.5, 6.67, 12.83]}, {"dur": 20.59, "sent": [0.5, 7.88]}];
+const CUES=[[1.5, 2.1], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 34.85, 40.59], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4, 10.0], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
 let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
   const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
 const DUR=acc,OUTRO=2.5;
