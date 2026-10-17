@@ -211,8 +211,8 @@ const scenes = [
     pts2.push([x,860+70*Math.tanh(4*Math.sin(ph*2.2+1))]);}
   line(pts1,C.stable,3,.5);line(pts2,C.dyn,3,.6);ctx.restore();
   T('Experience shifts value updating',120,420,{f:DISP,size:96});
-  T('from synaptic plasticity',120,530,{f:DISP,size:96,c:C.pink});
-  T('to persistent activity',120,640,{f:DISP,size:96,it:true,c:C.dyn});
+  T('from synaptic plasticity',120,530,{f:DISP,size:96});
+  T('to persistent activity',120,640,{f:DISP,size:96,it:true});
   T('Jaeeon Lee, Jay A. Hennig, Vanessa Frelih, Samuel J. Gershman, Naoshige Uchida',120,730,{size:32,c:C.ink,a:seg(u,.6,1.6)});
   T('Center for Brain Science · Harvard University',120,780,{size:28,c:C.mute,a:seg(u,1,2)});
 }},
