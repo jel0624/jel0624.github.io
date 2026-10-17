@@ -92,7 +92,7 @@ button { font: inherit; color: inherit; }
     <span id="time">0:00 / 0:00</span>
     <div class="vol"><button id="sound" class="iconbtn" aria-label="Mute" title="Mute (M)"><svg viewBox="0 0 16 16" aria-hidden="true" id="volicon"></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
     <button id="fs" class="iconbtn" aria-label="Full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
-    <audio id="narr" src="narration.mp3?v=27" preload="auto"></audio>
+    <audio id="narr" src="narration.mp3?v=28" preload="auto"></audio>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
@@ -103,11 +103,17 @@ const cv = document.getElementById('cv');let ctx = cv.getContext('2d');
 // layered(a, fn): draw a group at full opacity on an offscreen layer, then fade the whole layer at once, so shapes inside a
 // fading group never show what is behind them (Jay: lines must not show through fading circles). Layers nest (a small pool).
 const LAYERS=[];let LDEPTH=0;
-function layered(a,fn){if(a<=0)return;const ga=ctx.globalAlpha*a;if(ga>.999){ctx.save();fn();ctx.restore();return;}
-  const L=LAYERS[LDEPTH]||(LAYERS[LDEPTH]=document.createElement('canvas'));if(L.width!==cv.width||L.height!==cv.height){L.width=cv.width;L.height=cv.height;}
-  const main=ctx,lc=L.getContext('2d');lc.setTransform(1,0,0,1,0,0);lc.globalAlpha=1;lc.clearRect(0,0,L.width,L.height);lc.setTransform(main.getTransform());
+// box = [x, y, w, h] in stage coordinates: the layer only covers that, so fading stays cheap (a full-screen layer made scene 04 stutter).
+// veil: dim a region by laying the stage colour over it (and the background dots back on top), for long holds
+function veil(x,y,w,h,a){if(a<=0)return;rect(x,y,w,h,C.bg,a);ctx.save();ctx.globalAlpha*=a;ctx.fillStyle=C.grid;
+  for(let gx=Math.ceil(x/60)*60;gx<x+w;gx+=60)for(let gy=Math.ceil(y/60)*60;gy<y+h;gy+=60)ctx.fillRect(gx-1.5,gy-1.5,3,3);ctx.restore();}
+function layered(a,fn,box=[0,0,W,H]){if(a<=0)return;const ga=ctx.globalAlpha*a;if(ga>.999){ctx.save();fn();ctx.restore();return;}
+  const main=ctx,m=main.getTransform(),[bx,by,bw,bh]=box,ox=Math.floor(m.a*bx+m.c*by+m.e),oy=Math.floor(m.b*bx+m.d*by+m.f);
+  const pw=Math.ceil(bw*m.a)+2,ph=Math.ceil(bh*m.d)+2;
+  const L=LAYERS[LDEPTH]||(LAYERS[LDEPTH]=document.createElement('canvas'));if(L.width<pw||L.height<ph){L.width=Math.max(L.width,pw);L.height=Math.max(L.height,ph);}
+  const lc=L.getContext('2d');lc.setTransform(1,0,0,1,0,0);lc.globalAlpha=1;lc.clearRect(0,0,pw,ph);lc.setTransform(m.a,m.b,m.c,m.d,m.e-ox,m.f-oy);
   ctx=lc;LDEPTH++;try{fn();}finally{LDEPTH--;ctx=main;}
-  main.save();main.setTransform(1,0,0,1,0,0);main.globalAlpha=ga;main.drawImage(L,0,0);main.restore();}
+  main.save();main.setTransform(1,0,0,1,0,0);main.globalAlpha=ga;main.drawImage(L,0,0,pw,ph,ox,oy,pw,ph);main.restore();}
 let SC = 1; // backing-store scale: the film is authored at 1920x1080 and drawn at the screen's pixel density (up to 2x)
 const W = 1920, H = 1080;
 const C = { bg:'#0e1320', ink:'#eef0f5', mute:'#8f98ad', faint:'#273049', grid:'#1b2234',
@@ -189,7 +195,7 @@ function ltp(x,y,col,a,p=1,S=9){const G=GEOM.ltp,q=ease(p),lw=3.6/S,fill='#1e4a3
   const [a0,a1,a2]=G.arrow;arrow(x+a0*S,y+a1*S,x+a2*S,y+a1*S,'#8fe0b0',Math.max(2.5,.4*S),a*seg(p,0,.6),seg(p,0,.6));
   T('LTP',x+(a0+a2)/2*S,y+(a1-1.6)*S,{size:Math.round(3.4*S),c:col,align:'center',a});}
 // network as in the figure; activity sweeps from the input trace across the nodes to the output spike, over and over
-function network(x,y,a,u,S=9,dim=0){if(a<=0)return;if(ctx.globalAlpha*a<.999)return layered(a,()=>network(x,y,1,u,S,dim));
+function network(x,y,a,u,S=9,dim=0){if(a<=0)return;if(ctx.globalAlpha*a<.999)return layered(a,()=>network(x,y,1,u,S,dim),[x-16.5*S-40,y-7.4*S-40,33*S+80,14.8*S+80]);
   const G=GEOM.net;ctx.save();const lo=1-dim;
   const per=2.4,w=(u%per)/per*1.5-.25;                               // sweep position, input (0) -> output (1)
   const at=px=>Math.exp(-Math.pow((w-(px/G.r*.5+.5))/.16,2));
@@ -323,50 +329,58 @@ const scenes = [
   T('value stored in synaptic weights',120,362,{size:24,c:C.mute,a:L});
   T('2 · Persistent activity',1000,320,{size:36,w:600,c:C.dyn,a:R});
   T('value read from the network state',1000,362,{size:24,c:C.mute,a:R});
-  // ---- route 1: weights A->value and B->value (one layer, so the dimmed diagram stays opaque inside) ----
-  layered(L,()=>{const L=1;
+  // ---- route 1: weights A->value and B->value. Drawn solid; dimmed later by a veil (cheap), fade-ins use short layers ----
+  {const L=1;
   const la=L*seg(u,S[3],S[3]+.8);
   const nA=[230,520],nB=[230,720],nV=[530,620];
-  const t0=S[4]+.6,per=.45,steps=Math.floor(clamp((u-t0)/per,0,10)),wf=steps/10;
+  const t0=S[4]+.6,per=.45,tr=clamp((u-t0)/per,0,10),steps=Math.floor(tr),wf=(steps+ease(tr-steps))/10;  // eases inside each trial
   const wA=lerp(16,3,ease(wf)),wB=lerp(3,16,ease(wf));
+  layered(la,()=>{const la=1;
   line([nA,nV],C.pink,wA,la);line([nB,nV],C.pink,wB,la);
-  if(u>t0&&u<t0+10*per){const fl=1-((u-t0)/per%1);T('Δw',380,560,{f:MONO,size:28,c:C.pink,a:la*fl});}
-  T('w',372,532,{f:MONO,size:22,c:C.mute,a:la*(u<t0?1:0)});
+  {const on=seg(u,t0-.2,t0+.2)*(1-seg(u,t0+10*per-.2,t0+10*per+.3));if(on>0)T('Δw',380,560,{f:MONO,size:28,c:C.pink,a:la*on*(.65+.35*Math.sin((u-t0)/per*Math.PI*2))});}
+  T('w',372,532,{f:MONO,size:22,c:C.mute,a:la*(1-seg(u,t0-.3,t0+.1))});
   circle(...nA,38,C.A,la);T('A',nA[0],nA[1]+2,{align:'center',base:'middle',size:34,w:600,a:la});
   circle(...nB,38,C.B,la);T('B',nB[0],nB[1]+2,{align:'center',base:'middle',size:34,w:600,a:la});
   circle(...nV,46,C.bg,la,C.ink,4);T('value',nV[0],nV[1]+2,{align:'center',base:'middle',size:24,a:la});
+  },[170,450,440,330]);
   // value of A and B across trials: 3 trials before the reversal, 10 after, a long pause, 3 more
   const X0=640,X1=920,YT=470,YB=740,slot=(X1-X0)/18,ya=v=>YB-(YB-YT)*v,pl=L*seg(u,S[4],S[4]+.6);
   line([[X0,YT-10],[X0,YB],[X1,YB]],C.mute,2.5,pl);T('trials →',X1,YB+34,{size:20,c:C.mute,align:'right',a:pl});
   const rv=X0+slot*2.5;line([[rv,YT-10],[rv,YB]],C.warn,2,pl,[6,6]);T('reversal',rv,YT-20,{size:20,c:C.warn,align:'center',a:pl});
   const vA=k=>k<3?.9:k<13?lerp(.9,.1,ease((k-2)/10)):.1;
-  const shown=u<t0?2:2+steps,afterP=Math.floor(clamp((u-(t0+10*per+2.2))/.5,0,3));
-  const ptsA=[],ptsB=[];for(let k=0;k<=Math.min(12,shown);k++){const x=X0+slot*(k+.5);ptsA.push([x,ya(vA(k))]);ptsB.push([x,ya(1-vA(k))]);}
+  // the trace grows continuously, one trial per `per` seconds; each point fades in as the line reaches it
+  const gx=u<t0?2:Math.min(12,2+tr),afterF=clamp((u-(t0+10*per+2.2))/.5,0,3);
+  const ptsA=[],ptsB=[];for(let k=0;k<=Math.floor(gx);k++){const x=X0+slot*(k+.5);ptsA.push([x,ya(vA(k))]);ptsB.push([x,ya(1-vA(k))]);}
+  const fr=gx-Math.floor(gx);if(fr>0){const k=Math.floor(gx),x=X0+slot*(k+.5+fr);ptsA.push([x,ya(lerp(vA(k),vA(k+1),fr))]);ptsB.push([x,ya(1-lerp(vA(k),vA(k+1),fr))]);}
   if(ptsA.length>1){line(ptsA,C.A,4,pl);line(ptsB,C.B,4,pl);}
-  ptsA.forEach(p=>circle(p[0],p[1],5,C.A,pl));ptsB.forEach(p=>circle(p[0],p[1],5,C.B,pl));
+  for(let k=0;k<=Math.floor(gx);k++){const x=X0+slot*(k+.5),pa=pl*clamp((gx-k)*3);circle(x,ya(vA(k)),5,C.A,pa);circle(x,ya(1-vA(k)),5,C.B,pa);}
   // the pause, then the values are still there
   const pz=seg(u,t0+10*per+.3,t0+10*per+1);
   if(pz>0){const gx=X0+slot*14;line([[gx-slot*.9,YB-6],[gx+slot*.9,YB-6]],C.mute,2,L*pz,[4,6]);
     const cx=gx,cy=YT-62,ang=-Math.PI/2+lin(u,t0+10*per+.3,t0+10*per+2.2)*Math.PI*4;circle(cx,cy,22,null,L*pz,C.mute,3);line([[cx,cy],[cx+15*Math.cos(ang),cy+15*Math.sin(ang)]],C.ink,3,L*pz);
     T('long pause',gx,YT-20,{size:20,c:C.mute,align:'center',a:L*pz});
-    for(let k=0;k<afterP;k++){const x=X0+slot*(15.5+k);circle(x,ya(.1),5,C.A,L);circle(x,ya(.9),5,C.B,L);}
-    if(afterP>0){line([[X0+slot*15.5,ya(.1)],[X0+slot*(15.5+afterP-1),ya(.1)]],C.A,4,L);line([[X0+slot*15.5,ya(.9)],[X0+slot*(15.5+afterP-1),ya(.9)]],C.B,4,L);}}
+    for(let k=0;k<3;k++){const x=X0+slot*(15.5+k),pa=L*clamp(afterF-k);circle(x,ya(.1),5,C.A,pa);circle(x,ya(.9),5,C.B,pa);}
+    if(afterF>0){const xe=X0+slot*(15.5+Math.min(2,afterF));line([[X0+slot*15.5,ya(.1)],[xe,ya(.1)]],C.A,4,L);line([[X0+slot*15.5,ya(.9)],[xe,ya(.9)]],C.B,4,L);}}
   T('slow to reverse',120,850,{size:30,w:600,c:C.ink,a:L*seg(u,t0+2.2,t0+2.9)});
   T('but durable across pauses',120,892,{size:30,w:600,c:C.ink,a:L*seg(u,t0+10*per+2.6,t0+10*per+3.3)});
-  });
-  // ---- route 2: context held in persistent activity (one layer) ----
-  layered(R,()=>{const R=1;
+  }
+  veil(100,380,850,560,1-(u<S[5]?1:lerp(1,.32,seg(u,S[5],S[5]+.8))));
+  // ---- route 2: context held in persistent activity ----
+  {const R=1;
   const ra=R*seg(u,S[6],S[6]+.8);
   const cAx=1180,cBx=1620,cy=600;
+  const j0=S[7]+1.6,d0=S[8]+.6,jumpAt=uu=>seg(uu,j0,j0+.7),driftAt=uu=>seg(uu,d0,d0+4.2);
+  const posAt=uu=>{let x=lerp(cAx,cBx,jumpAt(uu));return lerp(x,(cAx+cBx)/2,driftAt(uu)*.95);};
+  layered(ra,()=>{const ra=1;
   line([[cAx-60,cy],[cBx+60,cy]],C.faint,3,ra,[10,10]);T('context axis',(cAx+cBx)/2,cy+100,{f:SANS,size:22,c:C.mute,align:'center',a:ra});
   for(let i=0;i<26;i++){circle(cAx+(rnd(i)-.5)*110,cy+(rnd(i+50)-.5)*110,6,C.A,ra*.35);circle(cBx+(rnd(i+9)-.5)*110,cy+(rnd(i+80)-.5)*110,6,C.B,ra*.35);}
   T('context A',cAx,cy-90,{f:SANS,size:22,c:C.A,align:'center',a:ra});T('context B',cBx,cy-90,{f:SANS,size:22,c:C.B,align:'center',a:ra});
-  const j0=S[7]+1.6,d0=S[8]+.6,jumpAt=uu=>seg(uu,j0,j0+.7),driftAt=uu=>seg(uu,d0,d0+4.2);
-  const posAt=uu=>{let x=lerp(cAx,cBx,jumpAt(uu));return lerp(x,(cAx+cBx)/2,driftAt(uu)*.95);};
   const trail=[];for(let k=0;k<20;k++){const uu=u-k*.05;trail.push([posAt(uu),cy+Math.sin(uu*3)*6]);}
   line(trail,C.ink,3,ra*.4);
   const sx=posAt(u);circle(sx,cy+Math.sin(u*3)*6,20,C.ink,ra);glow(sx,cy,60,'rgba(238,240,245,0.6)',ra*.5);
   T('network state',sx,cy+52,{size:20,c:C.mute,align:'center',a:ra*(1-seg(u,j0-.4,j0))});
+  },[1080,480,660,250]);
+  const sx=posAt(u);
   // the outcome that moves it
   const oa=seg(u,j0-.8,j0-.3)*(1-seg(u,j0+1.6,j0+2.2));
   if(oa>0){rect(1360,cy-175,80,56,C.B,ra*oa,6);T('B',1400,cy-146,{align:'center',base:'middle',size:30,w:600,a:ra*oa});drop(1480,cy-147,20,ra*oa);
@@ -380,7 +394,7 @@ const scenes = [
   // readout bars
   const pos=(sx-cAx)/(cBx-cAx);
   [[1-pos,C.A,'A'],[pos,C.B,'B']].forEach(([v,col,l],i)=>{const bx=1560+i*120;rect(bx,800-90*v,80,90*v,col,ra,4);T(`value ${l}`,bx+40,826,{f:SANS,size:20,c:C.mute,align:'center',a:ra});});
-  });
+  }
   // 9: only the second route matches the mice
   const ok=seg(u,S[9],S[9]+.7);
   if(ok>0){pill(1000,960,'reproduces the mice',C.dyn,ok);T('fast updating, and forgetting over long pauses',1360,970,{size:26,c:C.mute,a:ok});}
@@ -593,7 +607,7 @@ const scenes = [
   T('Music by Vincent Rubinetti',1800,1010,{size:24,c:C.mute,align:'right',a:seg(u,7,8)});
 }}];
 // narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
-const NARR=[{"dur": 9.08, "sent": [2.0, 4.93]}, {"dur": 24.364, "sent": [0.5, 8.3, 11.3, 16.82, 19.92]}, {"dur": 18.98, "sent": [0.5, 3.28, 6.5, 9.92, 14.54, 16.85]}, {"dur": 13.22, "sent": [0.5, 2.62, 8.12]}, {"dur": 44.67, "sent": [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87]}, {"dur": 32.66, "sent": [0.5, 2.59, 8.1, 9.43, 19.64, 23.16, 27.08]}, {"dur": 14.94, "sent": [0.5, 7.01, 9.36]}, {"dur": 24.06, "sent": [0.5, 2.14, 11.12, 20.94]}, {"dur": 13.9, "sent": [0.5, 4.42, 5.79, 10.27]}, {"dur": 13.8, "sent": [0.5, 6.44]}, {"dur": 20.04, "sent": [0.5, 6.67, 12.83]}, {"dur": 20.59, "sent": [0.5, 7.88]}];
+const NARR=[{"dur": 9.08, "sent": [2.0, 4.93]}, {"dur": 24.364, "sent": [0.5, 8.3, 11.3, 16.82, 19.92]}, {"dur": 18.98, "sent": [0.5, 3.28, 6.5, 9.92, 14.54, 16.85]}, {"dur": 13.22, "sent": [0.5, 2.62, 8.12]}, {"dur": 44.67, "sent": [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87]}, {"dur": 31.35, "sent": [0.5, 2.24, 7.04, 8.44, 17.79, 21.31, 25.43]}, {"dur": 14.94, "sent": [0.5, 7.01, 9.36]}, {"dur": 24.06, "sent": [0.5, 2.14, 11.12, 20.94]}, {"dur": 13.9, "sent": [0.5, 4.42, 5.79, 10.27]}, {"dur": 13.8, "sent": [0.5, 6.44]}, {"dur": 20.04, "sent": [0.5, 6.67, 12.83]}, {"dur": 20.59, "sent": [0.5, 7.88]}];
 const CUES=[[1.5, 2.1], [0.6, 2.0, 3.0, 3.4, 5.6], [0.5, 1.2, 3.4, 5.6, 7.6, 8.0], [0.4, 2.2, 5.4], [0.5, 6.85, 8.53, 11.29, 14.64, 22.99, 25.35, 29.04, 35.13, 40.87], [0.3, 0.6, 1.0, 1.2, 3.9, 7.4, 10.0], [0.5, 4.0, 6.2], [0.5, 2.6, 5.0, 17.0], [0.5, 3.4, 5.3, 9.9], [0.5, 5.0], [0.5, 4.6, 7.0], [0.5, 6.0]];
 let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
   const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
@@ -644,7 +658,11 @@ soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.mute
 big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
 const REST=()=>DUR-OUTRO-.01;
 // the audio is the master clock while it plays (re-seeking it to follow the frames made the sound choppy on iPhone)
-function loop(ts){if(playing){if(!seek&&!au.paused&&!au.seeking&&au.readyState>=2)t=au.currentTime;else if(last!=null)t+=(ts-last)/1000;if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
+// audio.currentTime only updates in coarse steps in some browsers, so the film runs on frame time and is steered gently toward the
+// audio position (extrapolated between its updates); it only snaps when they are > 0.3 s apart. The audio itself is never re-seeked.
+let aT=-1,aStamp=0;
+function loop(ts){if(playing){t+=last!=null?Math.min(.1,(ts-last)/1000):0;
+  if(!seek&&!au.paused&&!au.seeking&&au.readyState>=2){const c=au.currentTime;if(c!==aT){aT=c;aStamp=ts;}const e=aT+(ts-aStamp)/1000-t;if(Math.abs(e)>.3)t+=e;else t+=e*.08;}if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
 function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05){t=0;seek=true;}}setIcon();}
 window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
 // the QR code on the closing slide is also a link to the preprint
