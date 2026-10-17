@@ -93,7 +93,7 @@ button { font: inherit; color: inherit; }
     <span id="time">0:00 / 0:00</span>
     <div class="vol"><button id="sound" class="iconbtn" aria-label="Mute" title="Mute (M)"><svg viewBox="0 0 16 16" aria-hidden="true" id="volicon"></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
     <button id="fs" class="iconbtn" aria-label="Full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
-    <audio id="narr" src="narration.mp3?v=2" preload="auto"></audio>
+    <audio id="narr" src="narration.mp3?v=4" preload="auto"></audio>
   </div>
   <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
   <p class="note">Schematic summary of Lee, Wang &amp; Sabatini, <a href="https://doi.org/10.1038/s41593-020-00712-5">Nature Neuroscience 2020</a>: numbers on screen come from the paper; anatomy, traces and the eight-site maps are drawn schematically from its figures. Narration is a synthetic voice. Click the stage or press space to play or pause; F for full screen, M to mute.</p>
@@ -339,7 +339,7 @@ const scenes = [
   const w2=seg(u,10.61,11.2);T('2 weeks later',X+350,Y-90,{f:MONO,size:24,c:C.mute,align:'center',a:w2});
   T('Cre-dependent H2B-EGFP reporter mouse',X,940,{f:MONO,size:22,c:C.mute,a:seg(u,12.65,13.4)});
 }},
-{ name:'Output nuclei', dur:12.57, draw(u){
+{ name:'Output nuclei', dur:9.5, draw(u){
   header(3,'','Each region keeps its own zone',u);
   // coronal sections from Fig. 1a (medial = left); art is 2x the 600-dpi crop, so image px * K = canvas px
   const ap=seg(u,.3,1.1),K=.7,Y=290;
@@ -349,10 +349,10 @@ const scenes = [
   const SZ={DMS:at('str',100,116,210),DLS:at('str',100,216,234),VLS:at('str',100,234,340)};
   REG.forEach(([k,col],i)=>nuclei(...SZ[k],14,col,ap,i*17+3,12));
   // nucleus centre (image px) and the DMS / DLS / VLS zone offsets inside it
-  const N=[['GPe','globus pallidus','gpe',510,[176,366],[[-8,-34],[12,2],[2,40]],2.56],
-           ['EP','entopeduncular nucleus','ep',920,[184,424],[[20,-16],[0,0],[-20,14]],3.91],
-           ['SNr','substantia nigra','snr',1350,[174,474],[[-38,16],[0,-2],[38,-18]],5.96]];
-  const pulse=seg(u,9.24,9.8);
+  const N=[['GPe','globus pallidus','gpe',510,[176,366],[[-8,-34],[12,2],[2,40]],1.9],
+           ['EP','entopeduncular nucleus','ep',920,[184,424],[[20,-16],[0,0],[-20,14]],2.6],
+           ['SNr','substantia nigra','snr',1350,[174,474],[[-38,16],[0,-2],[38,-18]],3.3]];
+  const pulse=seg(u,6.0,6.6);
   N.forEach(([n,full,key,x0,[nx,ny],off,t0],j)=>{const a=seg(u,t0,t0+.6),im=ART[key],cx=x0+im.naturalWidth*K/2;
     img(key,cx,Y+im.naturalHeight*K/2,K,a*.8);
     T(n,cx,Y+470,{size:34,w:600,align:'center',a});T(full,cx,Y+506,{size:22,c:C.mute,align:'center',a});
@@ -360,28 +360,28 @@ const scenes = [
       cbez(SZ[k][0]+16,SZ[k][1],zx,zy,col,2,za*.25,lin(u,t0,t0+.8));
       nuclei(zx,zy,10,col,za,i*100+j*17,8,lin(u,t0+.3,t0+1.2));
       if(pulse>0)glow(zx,zy,26,col,pulse*(.35+.2*Math.sin(u*5+i*2)));});});
-  T('medial ← → lateral',1800,1030-36,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,6.4,7)});
-  T('The striatal map is preserved.',960,960,{f:DISP,size:48,it:true,align:'center',a:seg(u,10.17,10.9)});
-  T('n = 3 mice per site',1800,1030,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,10.6,11.2)});
+  T('medial ← → lateral',1800,1030-36,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,5.0,5.6)});
+  T('The striatal map is preserved.',960,960,{f:DISP,size:48,it:true,align:'center',a:seg(u,7.24,7.9)});
+  T('n = 3 mice per site',1800,1030,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,7.7,8.3)});
 }},
-{ name:'Downstream', dur:20.06, draw(u){
+{ name:'Downstream', dur:19.46, draw(u){
   header(4,'','The map holds outside the basal ganglia',u);
   const ap=seg(u,.3,1.1),sx=380,sy=560;
   oval(sx,sy,200,82,-.12,'#141b2c',ap,'#8f98ad',3);T('SNr',sx,sy-118,{size:32,w:600,align:'center',a:ap});
   const zx=[-110,0,110];REG.forEach(([k,col],i)=>{nuclei(sx+zx[i],sy+(i-1)*-8,26,col,ap,i*31+5,10);T(k,sx+zx[i],sy+120,{f:MONO,size:22,c:col,align:'center',a:ap});});
   T('medial',sx-200,sy+170,{f:MONO,size:18,c:C.mute,a:ap});T('lateral',sx+200,sy+170,{f:MONO,size:18,c:C.mute,align:'right',a:ap});
   // targets, zones ordered medial -> lateral (DMS, DLS, VLS)
-  const tg=[['thalamus','VM · Pf',360,4.88],['superior colliculus','medial → lateral',560,5.77],['brain stem','Gi · IRt / PCRt',760,7.61]];
-  const hV=seg(u,12.64,13.3),hD=seg(u,17.44,18.1);
+  const tg=[['thalamus','VM · Pf',360,4.4],['superior colliculus','medial → lateral',560,5.4],['brain stem','Gi · IRt / PCRt',760,7.0]];
+  const hV=seg(u,11.7,12.35),hD=seg(u,17.1,17.75);
   const em=i=>{let e=1;if(hV>0&&u<17.44)e=lerp(1,i===2?1:.22,hV);if(hD>0)e=lerp(i===2?1:.22,i===0?1:.22,hD);return e;};
   tg.forEach(([n,sub,y,t0],j)=>{const a=seg(u,t0,t0+.6),x=1220;oval(x,y,170,58,0,'#141b2c',a,'#8f98ad',3);
     T(n,x+210,y-4,{size:32,w:600,a});T(sub,x+210,y+32,{size:22,c:C.mute,a});
-    REG.forEach(([k,col],i)=>{const p=lin(u,8.66+i*.25+j*.2,9.9+i*.25+j*.2),e=em(i);
+    REG.forEach(([k,col],i)=>{const p=lin(u,8.8+i*.25+j*.2,10.04+i*.25+j*.2),e=em(i);
       cbez(sx+zx[i]+20,sy,x-110+i*110,y,col,3,a*.7*e,p);nuclei(x-110+i*110,y,16,col,a*(p>=1?1:.35)*e,i*7+j*13,8,p);});});
   // what each pathway reaches (text only, below the SNr)
   runs([['VLS',P.VLS],[' → lateral SC · IRt / PCRt',C.ink]],120,870,{size:28,w:600,a:hV});T('orofacial: licking',120,908,{size:24,c:C.mute,a:hV});
   runs([['DMS',P.DMS],[' → medial SC · Gi',C.ink]],120,968,{size:28,w:600,a:hD});T('orienting · locomotion',120,1006,{size:24,c:C.mute,a:hD});
-  T('n = 3 mice per site',1800,1030,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,9.6,10.2)});
+  T('n = 3 mice per site',1800,1030,{f:MONO,size:20,c:C.mute,align:'right',a:seg(u,9.4,10)});
 }},
 { name:'Closed loops', dur:10.74, draw(u){
   header(5,'','The lines loop back',u);
@@ -405,27 +405,27 @@ const scenes = [
   T('VM → cortex layer 1 → same region',X,700,{size:30,a:seg(u,9.06,9.7)});
   T('directly',X,640,{size:24,c:C.mute,a:seg(u,7.54,8.2)});T('through the cortex',X,740,{size:24,c:C.mute,a:seg(u,9.06,9.7)});
 }},
-{ name:'Slice tests', dur:12.2, draw(u){
+{ name:'Slice tests', dur:11.95, draw(u){
   header(6,'','Strong inside a loop, weak across loops',u);
   // example: SNr axons of the DMS channel (light), Pf cells of the DMS loop vs the DLS loop
   const ap=seg(u,.3,1.1),flash=(u%1.6)<.12&&u>1?1:0;
   T('SNr axons of the DMS channel',120,330,{size:26,w:600,c:P.DMS,a:ap});T('light on, in a thalamic slice',120,364,{size:22,c:C.laser,a:ap});
   line([[120,430],[300,470],[300,800]],P.DMS,3,ap);line([[300,470],[300,820]],P.DMS,3,ap);
   inhib(300,520,370,540,P.DMS,3,ap);inhib(300,770,370,760,P.DMS,3,ap*.6);if(flash)glow(300,600,90,'rgba(127,211,255,0.9)',ap*.8);
-  patchCell(430,540,P.DMS,'own loop',ap,.95,lin(u,2.33,3.3),u);
-  patchCell(430,770,P.DLS,'other loop',seg(u,5.7,6.3),.18,lin(u,6.1,7),u);
-  T('outward current',960,600,{f:MONO,size:18,c:C.mute,align:'right',a:seg(u,2.33,3)});
+  patchCell(430,540,P.DMS,'own loop',ap,.95,lin(u,2.4,3.4),u);
+  patchCell(430,770,P.DLS,'other loop',seg(u,5.6,6.2),.18,lin(u,5.8,6.7),u);
+  T('outward current',960,600,{f:MONO,size:18,c:C.mute,align:'right',a:seg(u,2.4,3.0)});
   // connected cells, own vs other loop (Figs. 3d, 4f)
   const rows=[['DMS channel → Pf',P.DMS,26,29,12,27],['DLS channel → Pf',P.DLS,23,25,2,24],['DMS channel → VM',P.DMS,14,17,2,17],['DLS channel → VM',P.DLS,8,9,1,9]];
   const X=1110,bw=380;T('cells connected',X,320,{size:28,w:600,a:seg(u,2.9,3.5)});
   rect(X+330,300,20,20,'#cfd5e3',seg(u,2.9,3.5),4);T('own loop',X+360,318,{size:22,c:C.mute,a:seg(u,2.9,3.5)});
   rect(X+500,300,20,20,'#5b6377',seg(u,2.9,3.5),4);T('other loop',X+530,318,{size:22,c:C.mute,a:seg(u,2.9,3.5)});
-  rows.forEach(([l,col,a1,n1,a2,n2],i)=>{const y=400+i*130,a=seg(u,3+i*.4,3.6+i*.4),g1=seg(u,3.2+i*.4,4.2+i*.4),g2=seg(u,6.1+i*.25,7+i*.25);
+  rows.forEach(([l,col,a1,n1,a2,n2],i)=>{const y=400+i*130,a=seg(u,3+i*.4,3.6+i*.4),g1=seg(u,3.2+i*.4,4.2+i*.4),g2=seg(u,5.8+i*.25,6.7+i*.25);
     T(l,X,y,{size:26,w:600,c:col,a});
     rect(X,y+18,bw*a1/n1*g1,30,col,a,4);T(`${a1}/${n1}`,X+bw*a1/n1*g1+12,y+42,{f:MONO,size:22,a});
     rect(X,y+56,Math.max(2,bw*a2/n2*g2),30,'#5b6377',a,4);T(`${a2}/${n2}`,X+bw*a2/n2*g2+12,y+80,{f:MONO,size:22,c:C.mute,a:a*g2});});
-  T('in-loop currents also larger (P < 0.01 in all four)',X,940,{f:MONO,size:20,c:C.mute,a:seg(u,7.4,8)});
-  T('Closed, segregated circuits.',120,1000,{f:DISP,size:44,it:true,a:seg(u,9.02,9.7)});
+  T('in-loop currents also larger (P < 0.01 in all four)',X,940,{f:MONO,size:20,c:C.mute,a:seg(u,7.0,7.6)});
+  T('Closed, segregated circuits.',120,1000,{f:DISP,size:44,it:true,a:seg(u,8.6,9.2)});
 }},
 { name:'Tapered fibers', dur:9.85, draw(u){
   header(7,'','Focal light with tapered fibers',u);
@@ -555,9 +555,9 @@ const scenes = [
 }}];
 
 // narration timing: per scene, sentence start times (s) in the audio and the visual moment each sentence lines up with
-const NARR=[{"dur": 10.69, "sent": [2.0, 4.8]}, {"dur": 16.1, "sent": [0.5, 7.98, 12.43]}, {"dur": 16.43, "sent": [0.5, 10.61]}, {"dur": 12.57, "sent": [0.5, 10.17]}, {"dur": 20.06, "sent": [0.5, 8.66, 10.42, 15.14]}, {"dur": 10.74, "sent": [0.5, 2.31]}, {"dur": 12.2, "sent": [0.5, 9.02]}, {"dur": 9.85, "sent": [0.5, 2.6]}, {"dur": 20.17, "sent": [0.5, 4.87, 14.68, 17.46]}, {"dur": 13.82, "sent": [0.5, 3.34, 8.59]}, {"dur": 10.76, "sent": [0.5, 8.53]}, {"dur": 7.98, "sent": [0.5, 2.35]}, {"dur": 22.18, "sent": [0.5, 5.33, 11.92]}];
-const CUES=[[2.0, 4.8], [0.5, 7.98, 12.43], [0.5, 10.61], [0.5, 10.17], [0.5, 8.66, 10.42, 15.14], [0.5, 2.31], [0.5, 9.02], [0.5, 2.6], [0.5, 4.87, 14.68, 17.46], [0.5, 3.34, 8.59], [0.5, 8.53], [0.5, 2.35], [0.5, 5.33, 11.92]];
-const SUBS=[[2.0, 4.68, "The basal ganglia help choose what we do."], [4.8, 7.27, "But is their wiring one big switchboard,"], [7.27, 9.49, "or a set of parallel, private lines?"], [11.19, 14.87, "In one model, any part of the striatum can reach any motor"], [14.87, 18.55, "output, so dopamine could link any stimulus to any action."], [18.67, 21.24, "In the other, each pathway stays segregated,"], [21.24, 23.0, "with its own set of behaviors."], [23.12, 25.89, "Both have support, so we traced the wiring directly."], [27.29, 32.17, "We injected a virus that crosses one synapse forward into one of"], [32.17, 35.98, "three striatal regions: dorsomedial, dorsolateral,"], [35.98, 37.28, "or ventrolateral."], [37.4, 41.03, "Two weeks later, it had switched on a green label in the cells"], [41.03, 42.32, "those neurons contact."], [43.72, 48.66, "In all three output nuclei, GPe, EP, and SNr,"], [48.66, 53.27, "each striatal region reached its own zone."], [53.39, 54.89, "The striatal map is preserved."], [56.29, 60.31, "Next, we followed the nigra's axons out of the basal ganglia,"], [60.31, 64.33, "to the thalamus, the superior colliculus, and the brain stem."], [64.45, 66.09, "The map holds there too."], [66.21, 68.51, "The ventrolateral pathway reaches"], [68.51, 70.81, "orofacial areas used for licking."], [70.93, 72.82, "The dorsomedial pathway reaches"], [72.82, 74.95, "areas for orienting and locomotion."], [76.35, 78.04, "And the lines loop back."], [78.16, 82.09, "Thalamic neurons fed by each channel project back to the same"], [82.09, 85.69, "striatal region, either directly, or through the cortex."], [87.09, 90.8, "In brain slices, nigral axons strongly inhibited thalamic"], [90.8, 94.38, "neurons in their own loop, and only weakly those in the"], [94.38, 95.49, "neighboring loop."], [95.61, 97.59, "These are closed, segregated circuits."], [99.29, 101.27, "Does the anatomy predict behavior?"], [101.39, 104.74, "Using tapered optical fibers, we could steer light to eight"], [104.74, 107.74, "small sites in the striatum, with brief, weak pulses."], [109.14, 112.08, "Mice learned to lick left or right for water,"], [112.08, 113.39, "depending on a tone."], [113.51, 117.66, "Between trials, stimulating direct pathway neurons in the"], [117.66, 120.5, "ventrolateral striatum triggered a lick"], [120.5, 123.2, "to the opposite side 94% of the time."], [123.32, 125.98, "Dorsolateral, 28%."], [126.1, 127.91, "Dorsomedial, almost never."], [129.31, 132.03, "The same lick zone could override a decision."], [132.15, 134.72, "Stimulating it during the tone pushed"], [134.72, 137.28, "right-cued choices to the wrong side."], [137.4, 141.73, "Stimulating the dorsomedial striatum left choices untouched."], [143.13, 147.05, "Stimulating the lick zone also excited most neurons in the"], [147.05, 151.04, "tongue and jaw motor cortex, and in the lateral colliculus."], [151.16, 152.49, "The whole loop switched on."], [153.89, 155.62, "In an open field, the map flipped."], [155.74, 158.76, "Medial sites drove strong turning to the opposite side,"], [158.76, 160.47, "while the lick zone barely did."], [161.87, 164.84, "So the basal ganglia run parallel, closed loops,"], [164.84, 166.58, "each with its own behaviors."], [166.7, 170.94, "Weighing one action against another likely happens elsewhere,"], [170.94, 173.17, "in the cortex or the colliculus."], [173.29, 175.55, "Check out the paper by clicking the link in the video."]];
+const NARR=[{"dur": 10.69, "sent": [2.0, 4.8]}, {"dur": 16.1, "sent": [0.5, 7.98, 12.43]}, {"dur": 16.43, "sent": [0.5, 10.61]}, {"dur": 9.5, "sent": [0.5, 7.24]}, {"dur": 19.46, "sent": [0.5, 8.8, 10.13, 14.9]}, {"dur": 10.74, "sent": [0.5, 2.31]}, {"dur": 11.95, "sent": [0.5, 8.6]}, {"dur": 9.85, "sent": [0.5, 2.6]}, {"dur": 20.17, "sent": [0.5, 4.87, 14.68, 17.46]}, {"dur": 13.82, "sent": [0.5, 3.34, 8.59]}, {"dur": 10.76, "sent": [0.5, 8.53]}, {"dur": 7.98, "sent": [0.5, 2.35]}, {"dur": 22.18, "sent": [0.5, 5.33, 11.92]}];
+const CUES=[[2.0, 4.8], [0.5, 7.98, 12.43], [0.5, 10.61], [0.5, 7.24], [0.5, 8.8, 10.13, 14.9], [0.5, 2.31], [0.5, 8.6], [0.5, 2.6], [0.5, 4.87, 14.68, 17.46], [0.5, 3.34, 8.59], [0.5, 8.53], [0.5, 2.35], [0.5, 5.33, 11.92]];
+const SUBS=[[2.0, 4.68, "The basal ganglia help choose what we do."], [4.8, 7.27, "But is their wiring one big switchboard,"], [7.27, 9.49, "or a set of parallel, private lines?"], [11.19, 14.87, "In one model, any part of the striatum can reach any motor"], [14.87, 18.55, "output, so dopamine could link any stimulus to any action."], [18.67, 21.24, "In the other, each pathway stays segregated,"], [21.24, 23.0, "with its own set of behaviors."], [23.12, 25.89, "Both have support, so we traced the wiring directly."], [27.29, 32.17, "We injected a virus that crosses one synapse forward into one of"], [32.17, 35.98, "three striatal regions: dorsomedial, dorsolateral,"], [35.98, 37.28, "or ventrolateral."], [37.4, 41.03, "Two weeks later, it had switched on a green label in the cells"], [41.03, 42.32, "those neurons contact."], [43.72, 47.14, "In all three output nuclei, GPe, EP, and SNr,"], [47.14, 50.34, "each striatal region reached its own zone."], [50.46, 51.82, "The striatal map is preserved."], [53.22, 57.02, "Next, we followed SNr axons out of the basal ganglia,"], [57.02, 61.4, "to the thalamus, the superior colliculus, and the brain stem."], [61.52, 62.73, "The map holds there too."], [62.85, 65.17, "The ventrolateral pathway reaches"], [65.17, 67.5, "orofacial areas used for licking."], [67.62, 69.34, "The dorsomedial pathway reaches"], [69.34, 71.28, "areas for orienting and locomotion."], [72.68, 74.37, "And the lines loop back."], [74.49, 78.42, "Thalamic neurons fed by each channel project back to the same"], [78.42, 82.02, "striatal region, either directly, or through the cortex."], [83.42, 87.35, "In brain slices, SNr axons strongly inhibited thalamic neurons"], [87.35, 89.06, "in their own loop, and only"], [89.06, 91.4, "weakly those in the neighboring loop."], [91.52, 93.67, "These are closed, segregated circuits."], [95.37, 97.35, "Does the anatomy predict behavior?"], [97.47, 100.82, "Using tapered optical fibers, we could steer light to eight"], [100.82, 103.82, "small sites in the striatum, with brief, weak pulses."], [105.22, 108.16, "Mice learned to lick left or right for water,"], [108.16, 109.47, "depending on a tone."], [109.59, 113.74, "Between trials, stimulating direct pathway neurons in the"], [113.74, 116.58, "ventrolateral striatum triggered a lick"], [116.58, 119.28, "to the opposite side 94% of the time."], [119.4, 122.06, "Dorsolateral, 28%."], [122.18, 123.99, "Dorsomedial, almost never."], [125.39, 128.11, "The same lick zone could override a decision."], [128.23, 130.79, "Stimulating it during the tone pushed"], [130.79, 133.36, "right-cued choices to the wrong side."], [133.48, 137.81, "Stimulating the dorsomedial striatum left choices untouched."], [139.21, 143.13, "Stimulating the lick zone also excited most neurons in the"], [143.13, 147.12, "tongue and jaw motor cortex, and in the lateral colliculus."], [147.24, 148.57, "The whole loop switched on."], [149.97, 151.7, "In an open field, the map flipped."], [151.82, 154.84, "Medial sites drove strong turning to the opposite side,"], [154.84, 156.55, "while the lick zone barely did."], [157.95, 160.92, "So the basal ganglia run parallel, closed loops,"], [160.92, 162.66, "each with its own behaviors."], [162.78, 167.02, "Weighing one action against another likely happens elsewhere,"], [167.02, 169.25, "in the cortex or the colliculus."], [169.37, 171.63, "Check out the paper by clicking the link in the video."]];
 let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
   const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
 const DUR=acc,OUTRO=2.5;
