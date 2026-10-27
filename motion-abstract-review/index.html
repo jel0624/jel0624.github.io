@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Avoid, Then Explore · motion abstract</title>
+<meta name="description" content="Animated summary: dopamine dips teach the striatal indirect pathway which actions to avoid, and its activity can launch an alternative action. Lee & Sabatini, Nature Reviews Neuroscience (2025). Music by Vincent Rubinetti.">
+<meta property="og:title" content="Avoid, Then Explore · motion abstract">
+<meta property="og:description" content="Animated summary: dopamine dips teach the striatal indirect pathway which actions to avoid, and its activity can launch an alternative action. Lee & Sabatini, Nature Reviews Neuroscience (2025). Music by Vincent Rubinetti.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jel0624.github.io/motion-abstract-review/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<style>
+/* Layout: a single 16:9 film stage, transport bar under it, chapter list as a timeline strip. Stage is always dark (screening room); page chrome follows the theme. */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --fg: #151a26;
+  --muted: #5b6377;
+  --line: #d8dce5;
+  --accent: #c0403c;
+  --display: "Newsreader", Georgia, serif;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0a0d15; --surface: #121725; --fg: #e8ebf2; --muted: #98a0b3; --line: #262d3f; --accent: #6cc8ef; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0a0d15; --surface: #121725; --fg: #e8ebf2; --muted: #98a0b3; --line: #262d3f; --accent: #6cc8ef; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+.byline { margin: 0; font-size: 15px; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 em { color: var(--accent); }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; background: #0e1320; border-radius: 6px; overflow: hidden; cursor: pointer; }
+canvas { display: block; width: 100%; height: 100%; }
+.transport { display: flex; align-items: center; gap: 12px; }
+button { font: inherit; color: inherit; }
+#play { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
+#play:focus-visible, .chap:focus-visible, #volume:focus-visible, #scrub:focus-visible, .bigplay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bigplay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px 14px 20px; border: 0; border-radius: 999px; background: #f5f6f9; color: #0e1320; font: 600 clamp(15px, 2.2vw, 20px)/1 var(--sans); cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.45); transition: transform .15s ease-out; }
+.bigplay:hover { transform: translate(-50%, -50%) scale(1.04); }
+/* full screen: the stage letterboxes the 16:9 film on black; .is-full is the fallback where the Fullscreen API is missing (iPhone) */
+.iconbtn { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--fg); }
+.iconbtn svg, .fsx svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn:focus-visible, .fsx:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage:fullscreen, .stage.is-full { width: 100%; height: 100%; aspect-ratio: auto; max-width: none; border-radius: 0; background: #000; display: grid; place-items: center; }
+.stage.is-full { position: fixed; inset: 0; z-index: 1000; height: 100dvh; }
+.stage:fullscreen canvas, .stage.is-full canvas { width: min(100vw, calc(100dvh * 16 / 9)); height: auto; aspect-ratio: 16 / 9; }
+.fsx { display: none; position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(245,246,249,.14); color: #f5f6f9; cursor: pointer; place-items: center; }
+.fsx:hover { background: rgba(245,246,249,.26); }
+.stage:fullscreen .fsx, .stage.is-full .fsx { display: grid; }
+.bigplay svg { width: 1em; height: 1em; fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .bigplay { transition: none; } }
+#play svg { width: 14px; height: 14px; fill: var(--fg); }
+#scrub { flex: 1; min-width: 0; accent-color: var(--accent); }
+/* volume: speaker button mutes, the slider sets the level (hidden on narrow screens, where the device keys do it) */
+.vol { flex: none; display: flex; align-items: center; gap: 6px; }
+#volume { width: 84px; margin: 0; accent-color: var(--accent); }
+#volicon .spk { fill: currentColor; }
+@media (max-width: 600px) { #volume { display: none; } }
+#time { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chap { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); }
+.chap[aria-current="true"] { color: var(--fg); border-color: var(--accent); }
+.chap b { font-family: var(--mono); font-weight: 500; margin-right: 6px; color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); max-width: 70ch; line-height: 1.5; margin: 0; }
+.note a { color: var(--accent); overflow-wrap: anywhere; text-underline-offset: 3px; }
+.credit { font-size: 11px; opacity: .3; transition: opacity .2s; }
+.credit a { color: inherit; }
+.credit:hover, .credit:focus-within { opacity: .75; }
+</style>
+<style>.byline a{color:var(--accent);text-decoration:none}.byline a:hover{text-decoration:underline;text-underline-offset:3px}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>From avoidance to new action: the multifaceted role of the <em>striatal indirect pathway</em></h1>
+    <p class="byline">Lee &amp; Sabatini · Nature Reviews Neuroscience (2025) · motion abstract · <a href="https://www.nature.com/articles/s41583-025-00925-2">paper</a> · <a href="/">Jaeeon Lee</a></p>
+  </header>
+  <div class="stage" id="stage"><canvas id="cv" width="1920" height="1080" aria-label="Animated summary of the paper"></canvas>
+    <button id="fsx" class="fsx" aria-label="Exit full screen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg></button>
+    <button id="bigplay" class="bigplay" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.8 8z"/></svg>Play with sound</button></div>
+  <div class="transport">
+    <button id="play" aria-label="Pause"><svg viewBox="0 0 14 14" id="icon"><rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/></svg></button>
+    <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Seek">
+    <span id="time">0:00 / 0:00</span>
+    <div class="vol"><button id="sound" class="iconbtn" aria-label="Mute" title="Mute (M)"><svg viewBox="0 0 16 16" aria-hidden="true" id="volicon"></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
+    <button id="fs" class="iconbtn" aria-label="Full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+    <audio id="narr" src="narration.mp3?v=1" preload="auto"></audio>
+  </div>
+  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+  <p class="note">Motion abstract of Lee &amp; Sabatini, <a href="https://www.nature.com/articles/s41583-025-00925-2">Nature Reviews Neuroscience 2025</a>. The figures are schematics redrawn from the Perspective's figures; all traces are schematic. Narration is a synthetic voice. Click the stage or press space to play or pause; F for full screen, M to mute, C for subtitles.</p>
+  <p class="note credit">Music by Vincent Rubinetti<br>Download the music on Bandcamp: <a href="https://vincerubinetti.bandcamp.com">https://vincerubinetti.bandcamp.com</a><br>Stream the music on Spotify: <a href="https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl">https://open.spotify.com/artist/2SRhEEt2tlDQWxzwfUo9Dl</a></p>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let SC = 1; // backing-store scale: the film is authored at 1920x1080 and drawn at the screen's pixel density (up to 2x)
+const W = 1920, H = 1080;
+const C = { bg:'#0e1320', ink:'#eef0f5', mute:'#8f98ad', faint:'#273049', grid:'#1b2234',
+  A:'#f0544f', B:'#4592dc', stable:'#3fbf78', dyn:'#bd63d1', pink:'#ef5f9f', warn:'#ff8a5c',
+  // paper colours: left licks blue, right licks red; outcomes correct grey / incorrect green / miss orange; laser light blue
+  L:'#4592dc', R:'#f0544f', ispn:'#f0544f', dspn:'#58a2e6', sc:'#bd63d1', laser:'#7fd3ff', cor:'#b8bfcc', inc:'#3fbf78', miss:'#f5a142', jaws:'#ff8a5c',
+  // review figure colours: iSPN red, dSPN blue, SNr green; Fig. 2 inputs dopamine purple, efference copy teal, state amber
+  da:'#c77ad8', eff:'#4bc4b3', st:'#f5a948', snr:'#3fbf78', gpe:'#9aa3b8', dls:'#8a8ff5', dms:'#c27be0', vs:'#f58a4a' };
+const DISP = '"Newsreader", Georgia, serif', SANS = '"IBM Plex Sans", system-ui, sans-serif', MONO = '"IBM Plex Mono", monospace';
+
+// ---------- helpers ----------
+const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease = x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;};
+const seg = (u,a,b)=>ease((u-a)/(b-a));
+const lin = (u,a,b)=>clamp((u-a)/(b-a));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const rnd = i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+function T(s,x,y,o={}){ctx.save();ctx.globalAlpha*=(o.a??1);
+  ctx.font=`${o.it?'italic ':''}${o.w||400} ${o.size||36}px ${o.f||SANS}`;
+  ctx.fillStyle=o.c||C.ink;ctx.textAlign=o.align||'left';ctx.textBaseline=o.base||'alphabetic';
+  ctx.letterSpacing=(o.ls||0)+'px';ctx.fillText(s,x,y);ctx.restore();}
+function line(pts,color,w=4,a=1,dash=null){ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineJoin='round';ctx.lineCap='round';
+  if(dash)ctx.setLineDash(dash);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();}
+function rect(x,y,w,h,fill,a=1,r=0){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();ctx.restore();}
+function circle(x,y,r,fill,a=1,stroke=null,sw=3){ctx.save();ctx.globalAlpha*=a;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();} ctx.restore();}
+function drop(x,y,s,a=1){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#6cc3ef';ctx.beginPath();
+  ctx.moveTo(x,y-s);ctx.bezierCurveTo(x+s*.9,y-s*.1,x+s*.75,y+s*.75,x,y+s*.75);ctx.bezierCurveTo(x-s*.75,y+s*.75,x-s*.9,y-s*.1,x,y-s);ctx.fill();ctx.restore();}
+function cross(x,y,s,a=1){line([[x-s,y-s],[x+s,y+s]],C.A,6,a);line([[x-s,y+s],[x+s,y-s]],C.A,6,a);}
+// arrowhead scales with the stroke, and the shaft stops inside the head so its round cap never pokes past the tip
+function arrow(x1,y1,x2,y2,color,w=4,a=1,p=1){const ang=Math.atan2(y2-y1,x2-x1),c=Math.cos(ang),s=Math.sin(ang),head=p>.95;
+  const h=Math.max(16,w*3.2),hw=Math.max(8,w*1.9),len=Math.hypot(x2-x1,y2-y1)*p,back=head?Math.min(h*.6,len):0;
+  const x=x1+c*(len-back),y=y1+s*(len-back);if(len-back>0)line([[x1,y1],[x,y]],color,w,a);
+  if(head){ctx.save();ctx.globalAlpha*=a;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*c+hw*s,y2-h*s-hw*c);ctx.lineTo(x2-h*c-hw*s,y2-h*s+hw*c);ctx.closePath();ctx.fill();ctx.restore();}}
+function header(n,eyebrow,title,u,titleIt=null){
+  const a=seg(u,0,.6);
+  T(title,120+(1-a)*20,176,{f:DISP,size:66,a});
+  if(titleIt){ctx.save();ctx.font=`400 66px ${DISP}`;const w=ctx.measureText(title).width;ctx.restore();
+    T(titleIt.s,120+(1-a)*20+w,176,{f:DISP,size:66,it:true,c:titleIt.c,a});}
+}
+function caption(s,u,at=1,y=1000){T(s,120,y,{size:30,c:C.mute,a:seg(u,at,at+.8)});}
+function chip(x,y,label,kind,a){ // kind: impaired | spared | mild
+  ctx.save();ctx.globalAlpha*=a;const w=230,h=56;
+  if(kind==='impaired'){rect(x-w/2,y-h/2,w,h,C.warn,1,28);T(label,x,y+2,{align:'center',base:'middle',size:28,w:600,c:'#1a1210'});}
+  else if(kind==='mild'){ctx.strokeStyle=C.warn;ctx.lineWidth=3;ctx.setLineDash([8,7]);ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.warn});}
+  else if(kind==='pred'){ctx.strokeStyle=C.mute;ctx.lineWidth=2.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.mute});}
+  else {ctx.strokeStyle=C.mute;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,28);ctx.stroke();T(label,x,y+2,{align:'center',base:'middle',size:28,c:C.ink});}
+  ctx.restore();}
+
+
+const QR=["111111100111010011111101001111111", "100000100010011101001100101000001", "101110101010010111111101001011101", "101110101100101010011001001011101", "101110101010100101100111101011101", "100000101000001110001100101000001", "111111101010101010101010101111111", "000000001101101100000110100000000", "101111100100011101100010101111100", "010000001111001010111011001101111", "101110100011100110101100111010100", "111011010001001000010111010011111", "101101110110100100100001000111000", "001110010100011111001111111101111", "110111110001010001010110011010110", "000111011010111010011100011100100", "011010101101100001010011110111001", "110010010000111011111111111101111", "011101101100010111000000000110110", "001001011000001101111101000111111", "110001111010110010010000100011011", "111110011101000100100111111100101", "100101100000010110100110010101110", "101100011001010100010110011110101", "101110101100101101000010111111000", "000000001011100010010111100010101", "111111100001111100101111101010100", "100000101010111110001111100011111", "101110101110110100101000111111000", "101110101111100110010101010011111", "101110101011110001101001111101100", "100000100011110010101101000010100", "111111101000000011010010101101010"];
+function img(k,x,y,s,a){const im=ART[k];if(!im||!im.width)return;ctx.save();ctx.globalAlpha*=a;ctx.drawImage(im,x-im.width*s/2,y-im.height*s/2,im.width*s,im.height*s);ctx.restore();}
+// a figure inset on a paper-white card (the PDF2 renders have a white background)
+function card(x,y,w,h,a){ctx.save();ctx.globalAlpha*=a;ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=30;ctx.shadowOffsetY=10;rect(x,y,w,h,'#fefefe',1,14);ctx.restore();}
+function qr(x,y,size,a){const n=QR.length,q=4,m=size/(n+2*q);card(x,y,size,size,a);ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#0e1320';
+  QR.forEach((row,i)=>{for(let j=0;j<n;j++)if(row[j]==='1')ctx.fillRect(x+(j+q)*m,y+(i+q)*m,m+.5,m+.5);});ctx.restore();}
+
+
+
+// ---------- small drawing helpers ----------
+// inhibitory connection: line ending in a flat bar
+function inhib(x1,y1,x2,y2,color,w=4,a=1,p=1){const x=lerp(x1,x2,p),y=lerp(y1,y2,p);line([[x1,y1],[x,y]],color,w,a);
+  if(p>.95){const ang=Math.atan2(y2-y1,x2-x1)+Math.PI/2,h=18;line([[x2-h*Math.cos(ang),y2-h*Math.sin(ang)],[x2+h*Math.cos(ang),y2+h*Math.sin(ang)]],color,w+2,a);}}
+function ellipse(x,y,rx,ry,fill,a=1,stroke=null,sw=3){ctx.save();ctx.globalAlpha*=a;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}ctx.restore();}
+function glow(x,y,r,col,a){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);ctx.restore();}
+function pill(x,y,label,col,a,sub=null){if(a<=0)return 0;ctx.save();ctx.font=`600 28px ${SANS}`;const w=ctx.measureText(label).width+52;ctx.restore();
+  rect(x,y-30,w,60,col,a,30);T(label,x+w/2,y+2,{align:'center',base:'middle',size:28,w:600,c:'#0e1320',a});
+  if(sub)T(sub,x+w+20,y+10,{size:26,c:C.mute,a});return w;}
+// text with coloured runs: parts = [[text, colour, italic?], ...]
+function runs(parts,x,y,o={}){let cx=x;parts.forEach(([s,c,it])=>{const f=`${it?'italic ':''}${o.w||400} ${o.size||36}px ${o.f||SANS}`;
+  T(s,cx,y,{...o,c:c||o.c||C.ink,it});ctx.save();ctx.font=f;cx+=ctx.measureText(s).width;ctx.restore();});}
+const mixC=(a,b,t)=>{const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);return'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*clamp(t))).join(',')+')';};
+function xmark(x,y,s,col,a,p=1){if(a<=0)return;const p1=clamp(p*2),p2=clamp(p*2-1);line([[x-s,y-s],[x-s+2*s*p1,y-s+2*s*p1]],col,7,a);if(p2>0)line([[x+s,y-s],[x+s-2*s*p2,y-s+2*s*p2]],col,7,a);}
+
+// a schematic mouse head seen from above, nose up; lickSide -1 left / +1 right, lickP 0..1 tongue reach
+function mouseTop(x,y,s,a,lickSide=0,lickP=0){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#2a3350';ctx.strokeStyle='#9aa3b8';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x,y-s*1.1);ctx.bezierCurveTo(x+s*.55,y-s*.9,x+s*.75,y+s*.2,x+s*.6,y+s*.8);ctx.lineTo(x-s*.6,y+s*.8);
+  ctx.bezierCurveTo(x-s*.75,y+s*.2,x-s*.55,y-s*.9,x,y-s*1.1);ctx.fill();ctx.stroke();
+  [-1,1].forEach(d=>{ctx.beginPath();ctx.ellipse(x+d*s*.55,y+s*.15,s*.26,s*.34,d*.4,0,Math.PI*2);ctx.fill();ctx.stroke();});
+  ctx.restore();[-1,1].forEach(d=>circle(x+d*s*.22,y-s*.45,s*.06,C.ink,a));
+  // whiskers
+  [-1,1].forEach(d=>{for(let k=0;k<3;k++)line([[x+d*s*.12,y-s*.95],[x+d*s*(.55+k*.06),y-s*(1.05-k*.12)]],'#6b7488',1.6,a*.8);});
+  if(lickSide&&lickP>0){const tx=x+lickSide*s*.38*lickP,ty=y-s*1.1-s*.32*lickP;line([[x,y-s*1.08],[tx,ty]],'#e7a0b0',s*.09,a);}
+  circle(x,y-s*1.08,s*.07,'#e7a0b0',a);}
+function spout(x,y,col,a,lit=0){if(a<=0)return;rect(x-13,y-80,26,100,'#3a4566',a,5);rect(x-13,y+10,26,12,col,a,3);if(lit>0)glow(x,y+16,46,col,a*lit*.6);}
+
+// grouped bars: cats [[label, colour]], vals [[no stim per cat], [stim per cat]]; pa/pb grow each set; em(i,set) emphasis 0..1
+function bars(x0,yb,H,cats,vals,pa,pb,a,em=null,names=['no stim','stim'],sc=C.laser){if(a<=0)return;const gw=180,bw=64;
+  line([[x0-20,yb],[x0+cats.length*gw,yb]],C.mute,3,a);line([[x0-20,yb],[x0-20,yb-H-10]],C.mute,3,a);
+  T('100',x0-32,yb-H+8,{f:MONO,size:20,c:C.mute,align:'right',a});T('0',x0-32,yb+8,{f:MONO,size:20,c:C.mute,align:'right',a});
+  ctx.save();ctx.translate(x0-78,yb-H/2);ctx.rotate(-Math.PI/2);T('% of trials',0,0,{size:22,c:C.mute,align:'center',a});ctx.restore();
+  cats.forEach(([l,c],i)=>{const x=x0+i*gw;
+    [[0,pa],[1,pb]].forEach(([k,p])=>{if(p<=0)return;const e=em?em(i,k):1,h=H*vals[k][i]*ease(p);
+      rect(x+k*(bw+10),yb-h,bw,h,k?c:'#5b6377',a*(k?.95:.85)*lerp(.28,1,e),4);
+      if(k&&h>2){ctx.save();ctx.globalAlpha*=a*lerp(.28,1,e);ctx.strokeStyle=sc;ctx.lineWidth=3;ctx.strokeRect(x+k*(bw+10),yb-h,bw,h);ctx.restore();}});
+    T(l,x+bw+5,yb+40,{size:26,w:600,c,align:'center',a});});
+  const lx=x0+cats.length*gw-20;rect(lx-160,yb-H-6,22,22,'#5b6377',a*.85,4);T(names[0],lx-128,yb-H+12,{size:22,c:C.mute,a});
+  rect(lx-160,yb-H+30,22,22,sc,a*pb,4);T(names[1],lx-128,yb-H+48,{size:22,c:sc,a:a*pb});}
+
+// a PSTH-like trace on a small axis: fn(f) -> 0..1 over f in 0..1; band [f0,f1] shades the laser window
+function trace(x0,x1,yb,h,fn,col,lw,a,p=1){if(a<=0||p<=0)return;const pts=[];const n=Math.round(120*p);
+  for(let i=0;i<=n;i++){const f=i/120;pts.push([lerp(x0,x1,f),yb-h*fn(f)]);}if(pts.length>1)line(pts,col,lw,a);}
+function axes(x0,x1,yb,h,a,band=null,bandCol=C.laser){if(a<=0)return;if(band)rect(lerp(x0,x1,band[0]),yb-h-6,(x1-x0)*(band[1]-band[0]),h+6,bandCol,a*.16,3);
+  line([[x0,yb-h],[x0,yb],[x1,yb]],C.mute,2.5,a);}
+
+// ---------- neurons ----------
+// a spiny projection neuron, drawn like a fluorescence image: soma, 6 primary dendrites that branch twice and taper,
+// spines along the branches, and an axon (path) that leaves toward its target. grow (0..1) extends the arbor from the soma,
+// ax (0..1) draws the axon; a spike runs down the axon every 2.6 s once it is drawn.
+const NEURON={};
+function neuronTree(seed){if(NEURON[seed])return NEURON[seed];let k=seed*97;const R=()=>rnd(k++),segs=[];
+  const build=(x,y,ang,len,w,d)=>{const pts=[[x,y]],n=Math.max(3,Math.round(len/6));let px=x,py=y,a=ang;
+    for(let i=0;i<n;i++){a+=(R()-.5)*.38;px+=Math.cos(a)*len/n;py+=Math.sin(a)*len/n;pts.push([px,py]);}
+    const sp=[];if(d>=1)for(let i=1;i<pts.length;i++){if(R()<.85){const [x0,y0]=pts[i-1],[x1,y1]=pts[i],t=R(),side=R()<.5?-1:1;
+      const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||1,bx=x0+dx*t,by=y0+dy*t,sl=3+R()*4;
+      sp.push([bx,by,bx-dy/L*sl*side,by+dx/L*sl*side]);}}
+    segs.push({pts,w0:w,w1:w*.62,d,sp});
+    if(d<2){const b=.32+R()*.32;build(px,py,a-b,len*(.62+R()*.2),w*.62,d+1);build(px,py,a+b,len*(.62+R()*.2),w*.62,d+1);}};
+  const n0=6,off=R()*6.28;for(let i=0;i<n0;i++)build(0,0,off+i*6.28/n0+(R()-.5)*.5,46+R()*30,5.2,0);
+  return NEURON[seed]=segs;}
+function neuron(x,y,seed,col,a,grow,S,u,axon=null,ax=0){if(a<=0)return;const segs=neuronTree(seed);
+  ctx.save();ctx.globalAlpha*=a;ctx.translate(x,y);ctx.scale(S,S);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineCap='round';
+  segs.forEach(sg=>{const f=clamp(grow*3-sg.d);if(f<=0)return;const n=sg.pts.length-1,m=Math.max(1,Math.round(n*f));
+    for(let i=1;i<=m;i++){ctx.lineWidth=lerp(sg.w0,sg.w1,i/n);ctx.beginPath();ctx.moveTo(...sg.pts[i-1]);ctx.lineTo(...sg.pts[i]);ctx.stroke();}
+    ctx.lineWidth=1.1;const sm=Math.round(sg.sp.length*f);for(let i=0;i<sm;i++){const [bx,by,hx,hy]=sg.sp[i];
+      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(hx,hy);ctx.stroke();ctx.beginPath();ctx.arc(hx,hy,1.7,0,Math.PI*2);ctx.fill();}});
+  ctx.save();ctx.shadowColor=col;ctx.shadowBlur=24;ctx.beginPath();
+  for(let i=0;i<=24;i++){const t=i/24*6.28,r=15*(1+.12*Math.sin(t*3+seed));i?ctx.lineTo(r*Math.cos(t),r*Math.sin(t)*.88):ctx.moveTo(r,0);}
+  ctx.fill();ctx.restore();circle(-3,-3,5,'#ffffff',.35);
+  ctx.restore();
+  if(axon&&ax>0&&a>0){const P=[[x+14*S,y+4*S],...axon],L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
+    const at=d=>{let i=1;while(i<P.length-1&&L[i]<d)i++;const t=(d-L[i-1])/(L[i]-L[i-1]||1);return[lerp(P[i-1][0],P[i][0],t),lerp(P[i-1][1],P[i][1],t)];};
+    const D=L[L.length-1]*ax,pts=[];for(let d=0;d<=D;d+=6)pts.push(at(d));pts.push(at(D));line(pts,col,2.2,a*.9);
+    if(ax>=1){const ph=(u%2.6)/2.6;if(ph<.5)glow(...at(L[L.length-1]*ph*2),26,'rgba(255,255,255,0.9)',a*.8);}}
+}
+// two collicular hemispheres (a dome of firing neurons each), optional mutual-inhibition arcs and Jaws light on the right dome.
+// act = [left, right] activity (0..1, ~0.45 baseline). S scales the whole drawing about (cx, cy).
+function colliculi(cx,cy,u,ap,act,ip=0,jaws=0,S=1,labels=['left lSC','right lSC']){if(ap<=0)return;const dx=210,R=[[cx-dx,cy],[cx+dx,cy]];
+  ctx.save();ctx.translate(cx,cy);ctx.scale(S,S);ctx.translate(-cx,-cy);
+  line([[cx,cy-170],[cx,cy+90]],'#3a4566',2,ap,[6,8]);
+  if(jaws>0){ctx.save();ctx.globalAlpha*=ap*jaws;const [x,y]=R[1],g=ctx.createLinearGradient(x+120,cy-200,x,y);g.addColorStop(0,'rgba(255,170,90,.75)');g.addColorStop(1,'rgba(255,138,92,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x+128,cy-196);ctx.lineTo(x-70,y+30);ctx.lineTo(x+90,y+40);ctx.closePath();ctx.fill();ctx.restore();
+    line([[x+170,cy-250],[x+128,cy-196]],'#c9cdd8',9,ap*jaws);}
+  R.forEach(([x,y],h)=>{const lv=act[h];
+    ctx.save();ctx.globalAlpha*=ap;const g=ctx.createRadialGradient(x,y-20,10,x,y,170);
+    g.addColorStop(0,mixC('#1c2238','#5c2f6c',lv*1.2));g.addColorStop(1,'#141a2b');ctx.fillStyle=g;ctx.strokeStyle=mixC('#5a4a78','#d79bea',lv);ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(x-150,y+40);ctx.bezierCurveTo(x-150,y-120,x+150,y-120,x+150,y+40);ctx.quadraticCurveTo(x,y+70,x-150,y+40);ctx.fill();ctx.stroke();ctx.restore();
+    if(lv>.6)glow(x,y-20,190,'rgba(240,84,79,0.8)',ap*(lv-.6)*1.6);
+    for(let i=0;i<7;i++){const nx=x+(i-3)*36+(rnd(i+h*9)-.5)*14,ny=y-6+Math.abs(i-3)*2-(rnd(i+20+h*9))*50;
+      const rate=.6+lv*5.5,ph=(u*rate+rnd(i*3+h*17))%1,sp=ph<.12?1-ph/.12:0;
+      neuron(nx,ny,40+i+h*10,mixC('#8a63a8','#f1c6ff',.3+.7*sp),ap*(.55+.45*sp),1,.24,u);
+      if(sp>0)glow(nx,ny,26,'rgba(255,220,255,0.9)',ap*sp*.9);}
+    if(labels)T(labels[h],x,y+104,{size:30,w:600,c:C.sc,align:'center',a:ap});});
+  // one inhibitory arc over the top (left -> right) and one underneath (right -> left), each ending in a T-bar
+  // perpendicular to the line, just short of the dome it inhibits
+  const arc=(x1,y1,x2,y2,bow,col,p)=>{const pts=[];const n=48;for(let i=0;i<=n*p;i++){const t=i/n;pts.push([lerp(x1,x2,t),lerp(y1,y2,t)-bow*Math.sin(Math.PI*t)]);}
+    if(pts.length>1)line(pts,col,5,ap);
+    if(p>.97){const [ex,ey]=pts[pts.length-1],[qx,qy]=pts[pts.length-4],L=Math.hypot(ex-qx,ey-qy)||1,nx=-(ey-qy)/L,ny=(ex-qx)/L;
+      line([[ex-nx*20,ey-ny*20],[ex+nx*20,ey+ny*20]],col,8,ap);}};
+  if(ip>0){arc(R[0][0]+20,cy-104,R[1][0]-48,cy-96,110,'#eef0f5',ip);
+    arc(R[1][0]-104,cy+66,R[0][0]+104,cy+66,-70,'#eef0f5',seg(ip,.2,1));
+    T('mutual inhibition',cx,cy-232,{size:24,c:C.mute,align:'center',a:ap*seg(ip,.8,1)});}
+  ctx.restore();}
+
+
+// ---------- scenes ----------
+// D2 review film (Lee & Sabatini, Nature Reviews Neuroscience 2025, "From avoidance to new action").
+// v2 (2026-10-27, Jay's pick "style B, cards"): every figure slide is an own canvas schematic of the Perspective's figure
+// (same content, drawn for the dark stage): no translucent overlays - parts are either solid or drawn as grey outlines,
+// highlights are card outlines. Mice white/light grey (Jay).
+// CUES are the identity, so every time below is audio time within the scene (sentence and phrase onsets from the clips).
+const artReady=Promise.resolve();
+const CARD='#161d2e',OFF='#3a4460';
+
+// ---------- card style ----------
+// a dark card (named panel: the engine's card() is the white paper card the QR sits on); hot (0..1) draws a glowing outline in hc while it is the one being spoken about
+function panel(x,y,w,h,a,hot=0,hc=C.st){if(a<=0)return;rect(x,y,w,h,CARD,a,22);
+  if(hot>0){ctx.save();ctx.globalAlpha*=a*hot;ctx.strokeStyle=hc;ctx.lineWidth=4;ctx.shadowColor=hc;ctx.shadowBlur=24;
+    ctx.beginPath();ctx.roundRect(x,y,w,h,22);ctx.stroke();ctx.restore();}}
+const ctitle=(s,x,y,a,c=C.ink,size=30)=>T(s,x,y,{size,w:600,c,align:'center',a});
+// a neuron: lit = glossy ball in its colour, off = grey outline (no see-through)
+function cell(x,y,r,col,a,lit=1){if(a<=0)return;if(lit>.5)ball(x,y,r,col,a);else circle(x,y,r,'#1b2234',a,OFF,3);}
+function dashed(x1,y1,x2,y2,col,w,a){if(a<=0)return;const L=Math.hypot(x2-x1,y2-y1),c=(x2-x1)/L,s=(y2-y1)/L;
+  line([[x1,y1],[x2-c*14,y2-s*14]],col,w,a,[7,8]);arrow(x2-c*16,y2-s*16,x2,y2,col,w,a);}
+function swatch(x,y,col,label,a){rect(x,y-20,26,26,col,a,5);T(label,x+38,y,{size:26,c:C.ink,a});}
+
+// ---------- mice ----------
+const MK={face:'#e4e8f0',ink:'#151a28',tongue:'#f08fb0'};
+// mouse head seen from above, nose down (as in Fig. 2b); o: lick (tongue to L), lickR, reward (drop at L), noSpout
+function mhead(x,y,s,a,o={}){if(a<=0)return;const k=MK.ink;ctx.save();ctx.globalAlpha*=a;ctx.lineWidth=Math.max(2,s*.07);
+  ctx.strokeStyle=k;ctx.fillStyle=o.fill||MK.face;
+  [-1,1].forEach(d=>{ctx.beginPath();ctx.ellipse(x+d*.62*s,y-.62*s,.36*s,.4*s,d*.35,0,Math.PI*2);ctx.fill();ctx.stroke();});
+  ctx.beginPath();ctx.moveTo(x-.78*s,y-.42*s);ctx.bezierCurveTo(x-.8*s,y+.3*s,x-.25*s,y+.9*s,x,y+1.02*s);
+  ctx.bezierCurveTo(x+.25*s,y+.9*s,x+.8*s,y+.3*s,x+.78*s,y-.42*s);ctx.bezierCurveTo(x+.4*s,y-.72*s,x-.4*s,y-.72*s,x-.78*s,y-.42*s);ctx.fill();ctx.stroke();
+  ctx.fillStyle=k;[-1,1].forEach(d=>{ctx.beginPath();ctx.arc(x+d*.3*s,y+.05*s,.075*s,0,Math.PI*2);ctx.fill();});
+  if(o.lick||o.lickR){const d=o.lickR?-1:1;ctx.fillStyle=MK.tongue;ctx.beginPath();ctx.ellipse(x+d*.14*s,y+1.12*s,.12*s,.17*s,-.4*d,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle=k;ctx.beginPath();ctx.arc(x,y+1.0*s,.1*s,0,Math.PI*2);ctx.fill();ctx.restore();
+  if(o.noSpout)return;
+  [-1,1].forEach(d=>rect(x+d*.32*s-.05*s,y+1.28*s,.1*s,.32*s,C.mute,a,2));   // spouts: R (picture left) and L
+  T('R',x-.32*s,y+1.95*s,{size:Math.round(s*.36),c:C.mute,align:'center',a});T('L',x+.32*s,y+1.95*s,{size:Math.round(s*.36),c:C.mute,align:'center',a});
+  if(o.reward)drop(x+.32*s,y+1.18*s,.16*s,a);}
+
+// ---------- signals ----------
+// one trial's step trace: kind up | dip | flat | tone | isp (lv = iSPN level 0..1)
+function stepT(x,y,w,h,kind,col,lw,a,lv=0){if(a<=0)return;const L=x+w*.3,R=x+w*.72;
+  if(kind==='flat')return line([[x,y],[x+w,y]],col,lw,a);
+  if(kind==='isp'){const hh=h*(.12+.88*lv);rect(L,y-hh,R-L,hh,mixC(CARD,col,.35),a,0);return line([[x,y],[L,y],[L,y-hh],[R,y-hh],[R,y],[x+w,y]],col,lw,a);}
+  const yy=kind==='dip'?y+h*.55:y-h;line([[x,y],[L,y],[L,yy],[R,yy],[R,y],[x+w,y]],col,lw,a);
+  if(kind==='tone')T('A',(L+R)/2,y-h*.22,{size:Math.round(h*.55),c:col,align:'center',a:a*.8});}
+// the iSPN and its inputs (Fig. 2a/c). o: {da, ef, st} alphas, efLab, stLab, out, wk (state synapse strength), hl {ef, st} highlights
+function circuit(x,y,a,o={}){if(a<=0)return;const in_=(k)=>(o[k]??1)*a,hl=o.hl||{};
+  const hi=(h,col,f)=>{if(h>0){ctx.save();ctx.shadowColor=col;ctx.shadowBlur=26*h;f();ctx.restore();}else f();};
+  T('DA',x-170,y-130,{size:34,c:C.da,align:'center',a:in_('da')});arrow(x-145,y-104,x-34,y-30,C.da,5,in_('da'));
+  (o.efLab||['efference','copy']).forEach((s,i)=>T(s,x,y-218+i*34,{size:32,c:C.eff,align:'center',a:in_('ef')}));
+  hi(hl.ef||0,C.eff,()=>arrow(x,y-160,x,y-42,C.eff,5+5*(hl.ef||0),in_('ef')));
+  T(o.stLab||'state',x+178,y-130,{size:34,c:C.st,align:'center',a:in_('st')});
+  hi(hl.st||0,C.st,()=>{const w=5+(o.wk||0)*5+4*(hl.st||0);[-14,0,14].forEach(d=>arrow(x+150+d,y-96-d*.6,x+38+d*.7,y-22+d*.9,C.st,w,in_('st')));});
+  if(o.glowA>0)glow(x,y,150,'rgba(240,84,79,.7)',o.glowA);
+  ball(x,y,36,'#f0645f',a);T('iSPN',x-62,y+12,{size:34,c:C.ispn,align:'right',a});
+  inhib(x,y+38,x,y+112,C.ispn,5,a);T(o.out||'action',x,y+162,{size:34,c:C.ink,align:'center',a});}
+
+// status pill, top right: published | proposal | prediction | proposed
+function tag(label,kind,a){if(a<=0)return;ctx.save();ctx.font=`600 24px ${SANS}`;const w=ctx.measureText(label).width+44;ctx.restore();
+  const x=1800-w,y=132,col={published:C.stable,proposal:C.dyn,prediction:C.warn,proposed:C.mute}[kind];
+  ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=col;ctx.lineWidth=2.5;if(kind!=='published')ctx.setLineDash([7,6]);
+  ctx.beginPath();ctx.roundRect(x,y,w,46,23);ctx.stroke();ctx.restore();T(label,x+w/2,y+31,{size:24,w:600,c:col,align:'center',a});}
+function cite(s,x,y,a,align='left'){T(s,x,y,{size:22,c:C.mute,a,align});}
+// glossy ball, like the neurons in the figures
+function ball(x,y,r,col,a,lit=0){if(a<=0)return;if(lit>0)glow(x,y,r*3.2,col,a*lit*.55);ctx.save();ctx.globalAlpha*=a;
+  const g=ctx.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);g.addColorStop(0,mixC(col,'#ffffff',.55));g.addColorStop(1,col);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(10,12,20,.6)';ctx.lineWidth=2;ctx.stroke();ctx.restore();}
+const pulse=(u,a,b)=>seg(u,a,a+.35)*(1-seg(u,b,b+.6));   // on at a, off at b
+// smooth bump for schematic traces
+const bump=(x,c,w)=>Math.exp(-(((x-c)/w)**2));
+
+// ---------- figure slides as card schematics ----------
+// Fig. 1a-c: three models. Cards appear with their titles, the drawing comes with its sentence.
+const SC_models={ name:'Three models', dur:17.87, draw(u){
+  header(2,'','Three models of indirect-pathway function',u);
+  const lg=seg(u,.5,1.1);ball(1560,232,12,C.dspn,lg);T('dSPN',1582,242,{size:28,c:C.dspn,a:lg});ball(1690,232,12,C.ispn,lg);T('iSPN',1712,242,{size:28,c:C.ispn,a:lg});
+  const T0=[4.13,8.83,12.33],END=[8.83,12.33,17.6],ttl=['Center-surround model','Refinement model','Competitive model'];
+  const SP=[[-46,-26,1],[-6,-44,1],[38,-30,0],[-30,8,0],[10,-4,0],[50,8,1],[-8,34,0],[30,36,1]];
+  for(let i=0;i<3;i++){const x=120+i*580,cx=x+260,ca=seg(u,.5+i*.25,1.1+i*.25),d=seg(u,T0[i],T0[i]+.7);
+    panel(x,270,520,640,ca,pulse(u,T0[i],END[i]),C.dms);ctitle(ttl[i],cx,334,ca);
+    SP.forEach(([dx,dy,b])=>ball(cx+dx,430+dy,15,b?C.dspn:C.ispn,d));
+    const by=600;ctx.save();ctx.globalAlpha*=d;ctx.strokeStyle=C.dms;ctx.lineWidth=4;ctx.beginPath();ctx.roundRect(cx-175,by,350,110,12);ctx.stroke();ctx.restore();
+    T('movement space',cx+175,by-12,{size:20,c:C.dms,align:'right',a:d});
+    if(i<2)arrow(cx,488,cx,by-8,C.ink,6,d);
+    if(i===0){ellipse(cx,by+55,150,36,'#7a3236',d,C.ispn,3);ellipse(cx,by+55,26,12,C.dspn,d);
+      T('target motor program',cx,by+160,{size:28,c:C.dspn,align:'center',a:d});T('competing motor programs',cx,by+200,{size:28,c:C.ispn,align:'center',a:d});}
+    if(i===1){[[-20,-10],[16,-12],[-2,14]].forEach(([dx,dy])=>ellipse(cx+dx,by+55+dy,28,17,C.ispn,d,'#151a28',2));ellipse(cx,by+55,22,13,C.dspn,d,'#151a28',2);
+      T('precise movement',cx,by+170,{size:30,c:C.dspn,align:'center',a:d});}
+    if(i===2){line([[cx-34,486],[cx-34,548],[cx-12,548]],C.dspn,6,d);arrow(cx-20,548,cx-6,548,C.dspn,6,d);
+      line([[cx+34,486],[cx+34,548],[cx+16,548]],C.ispn,6,d);inhib(cx+20,548,cx+6,548,C.ispn,6,d);
+      arrow(cx,556,cx,by-8,C.ink,6,d);ellipse(cx,by+55,26,13,'#9aa3b8',d);
+      T('iSPNs oppose dSPNs',cx,by+170,{size:30,c:C.dspn,align:'center',a:d});}}
+}};
+// Fig. 1d: dSPN/iSPN pairs over SNr cells; compete on a shared target, refine where targets differ.
+const SC_coexist={ name:'Compete and refine', dur:12.25, draw(u){
+  header(3,'','The models can coexist',u);
+  const A=[seg(u,.5,1.2),seg(u,2.27,3),seg(u,6.79,7.5)],hot=[0,pulse(u,2.27,6.79),seg(u,6.79,7.3)];
+  // per card: which cells are lit [iSPN, dSPN, SNr] per column, and the arrow colour per column (null = off)
+  const ST=[{i:[1,1,1],d:[1,1,1],s:[1,1,1],ar:[C.ink,C.ink,C.ink]},
+            {i:[0,1,0],d:[0,1,0],s:[0,1,0],ar:[null,C.ink,null]},
+            {i:[1,0,1],d:[0,1,0],s:[0,1,0],ar:[C.ispn,C.ink,C.ispn]}];
+  const ttl=['Competitive & refinement model','Shared target: compete','Different targets: refine'],
+    cap=[null,['dSPN and iSPN','compete for SNr activity'],['iSPN','refines SNr activity']];
+  ST.forEach((s,k)=>{const x=120+k*580,cx=x+260,a=A[k];panel(x,270,520,640,a,hot[k],k===1?C.ispn:C.stable);
+    ctitle(ttl[k],cx,334,a,C.ink,28);
+    [-110,0,110].forEach((dx,j)=>{const X=cx+dx;cell(X,430,26,C.ispn,a,s.i[j]);cell(X,478,26,C.dspn,a,s.d[j]);
+      dashed(X,512,X,608,s.ar[j]||OFF,4,a);cell(X,640,26,C.snr,a,s.s[j]);});
+    if(k===0){T('iSPN',cx+150,440,{size:28,c:C.ispn,a});T('dSPN',cx+150,488,{size:28,c:C.dspn,a});T('SNr',cx+150,650,{size:28,c:C.snr,a});}
+    if(cap[k])cap[k].forEach((l,i)=>T(l,cx,760+i*42,{size:30,c:C.ink,align:'center',a}));});
+}};
+// Fig. 2a: the three-factor rule
+const SC_rule={ name:'Three-factor rule', dur:16.12, draw(u){
+  header(5,'','A three-factor learning rule',u);
+  tag('our proposal','proposal',seg(u,.5,1.1));
+  const ap=seg(u,.5,1.2),sA=seg(u,3.6,4.3),bx=seg(u,7.6,8.3),dA=seg(u,10.88,11.4),eA=seg(u,12.07,12.6),stA=seg(u,13.92,14.4);
+  panel(120,260,700,660,ap,pulse(u,3.6,7.4));
+  circuit(470,620,ap,{da:Math.max(.0,dA),ef:Math.max(0,eA),st:Math.max(sA,stA),hl:{st:pulse(u,3.7,7.2)},glowA:stA*(.6+.3*Math.sin(u*5))});
+  T('state synapse',650,360,{size:26,c:C.st,a:pulse(u,4,7.2),align:'center'});
+  panel(880,260,920,660,bx,pulse(u,10.88,15.6),C.ispn);ctitle('conditions for LTP of the state synapse',1340,330,bx);
+  const R=[['DA','dip',C.da,dA],['efference','up',C.eff,eA],['state','up',C.st,stA],['iSPNs','isp',C.ispn,seg(u,14.3,14.8)]];
+  R.forEach(([l,k,c,a],j)=>{const y=470+j*110;T(l,1260,y+2,{size:36,c,align:'right',a:bx});stepT(1300,y,240,46,k,c,5,a*bx,.12);});
+  T('dopamine dip  +  efference copy  +  state  →  LTP of the state synapse',960,968,{size:30,c:C.ink,align:'center',a:stA});
+}};
+// Fig. 2b-c: learning to stop licking (style B mock-up)
+const SC_stop={ name:'Learning to stop', dur:19.81, draw(u){
+  header(6,'','Learning to stop licking',u);tag('our proposal','proposal',seg(u,.5,1.1));
+  const tA=[seg(u,.5,1.2),seg(u,6.7,7.3),seg(u,7.1,7.7),seg(u,15.09,15.7)],rows=seg(u,5.53,6.2),lw=seg(u,8.95,9.6),wk=seg(u,11.84,14.5),m4=tA[3];
+  const TR=[{out:'reward',oc:C.da,o:{lick:1,reward:1},da:'up',ef:'up',isp:.05},{out:'no reward',oc:C.da,o:{lick:1},da:'dip',ef:'up',isp:.08},
+    {out:'no reward',oc:C.da,o:{lick:1},da:'dip',ef:'up',isp:.4},{out:'no lick',oc:C.ispn,o:{},da:'flat',ef:'flat',isp:1}];
+  const RL=[['DA',C.da],['efference',C.eff],['tone',C.st],['iSPNs',C.ispn]];
+  circuit(330,680,rows,{efLab:['efference','(left lick)'],stLab:'tone A',out:'left lick',wk,glowA:m4*(.6+.3*Math.sin(u*5))});
+  [760,1040,1320,1600].forEach((x,i)=>{const a=tA[i],t=TR[i],cw=250;panel(x-cw/2,240,cw,660,a,(i===1||i===2)?lw:0);
+    T('Trial '+(i+1),x,290,{size:30,w:600,c:C.ink,align:'center',a});T('tone A',x,328,{size:26,c:C.st,align:'center',a});
+    mhead(x,405,54,a,t.o);
+    ctx.save();ctx.font=`600 26px ${SANS}`;const w=ctx.measureText(t.out).width+36;ctx.restore();
+    rect(x-w/2,530,w,42,mixC(CARD,t.oc,.25),a,21);T(t.out,x,560,{size:26,w:600,c:t.oc,align:'center',a});
+    [t.da,t.ef,'tone','isp'].forEach((kk,j)=>{const y=640+j*66;T(RL[j][0],x-cw/2+18,y-6,{size:20,c:RL[j][1],a:a*rows});
+      stepT(x-cw/2+100,y,130,30,kk,RL[j][1],3.5,a*rows,t.isp);});});
+  T('LTP window',1180,945,{size:30,c:C.st,align:'center',a:lw});
+}};
+// Fig. 2a again: what the rule predicts. Everything solid; the input being discussed gets a glowing, thicker arrow.
+const SC_pred={ name:'Predictions', dur:15.89, draw(u){
+  header(7,'','What the rule predicts',u);tag('prediction','prediction',seg(u,.5,1.1));
+  const ap=seg(u,.4,1.1),p1=seg(u,2.31,2.9)*(1-seg(u,9.79,10.4)),p2=seg(u,9.79,10.4);
+  panel(120,260,640,660,ap);circuit(440,620,ap,{hl:{ef:p1,st:p2}});
+  const a1=seg(u,2.31,3),x0=880,x1=1380;
+  panel(820,260,980,380,a1,p1,C.eff);
+  T('1',870,330,{f:DISP,size:56,c:C.warn,a:a1});T('iSPNs fire at movement onset',920,322,{size:34,w:600,a:a1});
+  axes(x0,x1,560,150,a1);line([[lerp(x0,x1,.4),400],[lerp(x0,x1,.4),568]],C.mute,2,a1,[6,7]);
+  T('movement onset',lerp(x0,x1,.4),600,{size:22,c:C.mute,align:'center',a:a1});
+  trace(x0,x1,560,150,x=>.1+.8*bump(x,.44,.07),C.ispn,5,a1,lin(u,3,5.5));
+  T('carries the',1450,420,{size:26,c:C.eff,a:seg(u,5.84,6.4)});T('efference copy',1450,454,{size:26,c:C.eff,a:seg(u,5.84,6.4)});
+  const ok=seg(u,7.52,8.1);rect(1450,490,270,52,mixC(CARD,C.stable,.22),ok,26);T('seen in many studies ✓',1585,525,{size:24,w:600,c:C.stable,align:'center',a:ok});
+  panel(820,670,980,270,p2,p2,C.st);
+  T('2',870,738,{f:DISP,size:56,c:C.warn,a:p2});T('memory stored in state synapses',920,730,{size:34,w:600,a:p2});
+  runs([['state → iSPN',C.st],['   plastic, stores the memory',C.ink]],920,795,{size:28,a:p2});
+  runs([['efference copy → iSPN',C.eff],['   only needed for learning',C.mute]],920,842,{size:28,a:seg(u,13.24,13.8)});
+  T('not yet tested directly',920,900,{size:24,it:true,c:C.mute,a:seg(u,14,14.6)});
+}};
+// Fig. 3: DA level per striatal domain (schematic traces as in the Perspective); dips filled red
+const SC_dips={ name:'Regional dips', dur:15.72, draw(u){
+  header(8,'','Where does dopamine dip?',u);tag('published · refs 82, 87','published',seg(u,4,4.6));
+  const A=seg(u,3.99,4.6),Ad=seg(u,7.0,7.6),B=seg(u,8.88,9.5),Bd=seg(u,11.0,11.6),hd=seg(u,.5,1.2);
+  swatch(120,250,C.A,'DA below baseline',Math.max(Ad,Bd));
+  // shape: baseline, fast peak, decay; dip = depth below baseline after the peak
+  const f=(x,dip,slow)=>x<.28?0:x<.42?(x-.28)/.14:x<.55?1-.78*(x-.42)/.13:dip?(x<.68?.22-(.22+dip)*(x-.55)/.13:-dip*(1-(x-.68)/.32)):.22*(1-(x-.55)/.45*(slow?.6:1));
+  const task=(x,a,ad,ttl,sub,cols,dips,foot)=>{panel(x,280,820,640,Math.max(hd,a)*1,a*pulse(u,x<900?3.99:8.88,x<900?8.88:15.5),C.A);
+    ctitle(ttl,x+410,340,hd);T(sub,x+410,378,{size:24,c:C.mute,align:'center',a:hd});
+    const rows=[['DLS',C.dls],['DMS',C.dms],['VS',C.vs]];
+    cols.forEach((cn,ci)=>{const x0=x+230+ci*290,w=230;T(cn,x0+w/2,440,{size:30,w:600,c:C.ink,align:'center',a});
+      rows.forEach(([r,c],ri)=>{const yb=540+ri*120,h=80,dp=dips[ci][ri],P=[];
+        line([[x0,yb],[x0+w,yb]],C.mute,2,a*.8,[5,7]);
+        for(let k=0;k<=60;k++){const s=k/60;P.push([x0+s*w,yb-h*f(s,dp,ci===0)]);}
+        if(dp){const D=P.filter(p=>p[1]>yb);if(D.length>1){ctx.save();ctx.globalAlpha*=a*ad;ctx.fillStyle=C.A;ctx.beginPath();ctx.moveTo(D[0][0],yb);D.forEach(p=>ctx.lineTo(p[0],p[1]));
+          ctx.lineTo(D[D.length-1][0],yb);ctx.fill();ctx.restore();}}
+        line(P,c,5,a);});});
+    rows.forEach(([r,c],ri)=>T(r,x+190,548+ri*120,{size:34,w:600,c,align:'right',a}));
+    T(foot,x+410,900,{size:26,c:C.mute,align:'center',a});};
+  task(120,A,Ad,'Pellet reaching task','DA level',['hit','miss'],[[0,0,0],[.36,.06,0]],'at movement onset');
+  task(980,B,Bd,'Odor discrimination task','DA level',['big water','small water'],[[0,0,0],[0,.32,.32]],'at outcome');
+  cite('a: Phillips et al., J. Neurosci. 2024 · b: Tsutsui-Kimura et al., eLife 2020 · schematic traces as in the Perspective',120,975,seg(u,4.4,5));
+}};
+// Box 1d: parallel RL modules
+const SC_modules={ name:'Parallel modules', dur:9.45, draw(u){
+  header(9,'','Each domain, its own learning module',u);tag('our proposal','proposal',seg(u,.5,1.1));
+  const ap=seg(u,.4,1.2),t1=seg(u,6.38,6.9),t2=seg(u,7.52,7.9),t3=seg(u,7.9,8.3);
+  panel(120,260,960,660,ap);ctitle('parallel RL modules',600,326,ap);
+  T('cortex,',300,488,{size:26,c:C.mute,align:'right',a:ap});T('thalamus',300,520,{size:26,c:C.mute,align:'right',a:ap});
+  T('striatum',300,686,{size:26,c:C.mute,align:'right',a:ap});
+  [[330,'#1d3326',C.stable,'domain 1'],[700,'#3a2620',C.vs,'domain 2']].forEach(([x,fill,edge,lab],k)=>{
+    rect(x,420,340,320,fill,ap,40);ctx.save();ctx.globalAlpha*=ap;ctx.strokeStyle=edge;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x,420,340,320,40);ctx.stroke();ctx.restore();
+    const top=[x+70,x+170,x+270],bot=[x+120,x+220];
+    top.forEach(a=>bot.forEach(b=>line([[a,500],[b,676]],'#8f98ad',2.5,ap)));
+    top.forEach(a=>ball(a,500,24,'#c3c9d6',ap));bot.forEach(b=>ball(b,676,24,'#c3c9d6',ap));
+    T(lab,x+170,792,{size:30,w:600,c:edge,align:'center',a:ap});
+    const q=388;line([[x+110,q],[x+150,q],[x+162,q+26],[x+178,q+26],[x+190,q],[x+230,q]],C.da,5,t1);});
+  const rx=1170;
+  T('own teaching signal',rx,470,{size:38,w:600,c:C.da,a:t1});T('a local dopamine dip',rx,512,{size:26,c:C.mute,a:t1});
+  T('own efference copy',rx,610,{size:38,w:600,c:C.eff,a:t2});
+  T('own state input',rx,720,{size:38,w:600,c:C.st,a:t3});
+  cite('after Box 1 of the Perspective',120,975,seg(u,1,1.6));
+}};
+// Fig. 4, simplified (Jay: "a bit busy"): one card per study, one icon + the outcome the narration names
+function curvArrow(cx,cy,r,a0,a1,col,w,a){if(a<=0)return;ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(cx,cy,r,a0,a1);ctx.stroke();ctx.restore();
+  const x=cx+r*Math.cos(a1),y=cy+r*Math.sin(a1),t=a1+Math.PI/2;arrow(x-Math.cos(t)*2,y-Math.sin(t)*2,x+Math.cos(t)*14,y+Math.sin(t)*14,col,w,a);}
+const SC_new={ name:'A new action', dur:19.02, draw(u){
+  header(10,'','Activating iSPNs starts a new action',u);tag('published · 4 studies','published',seg(u,3.4,4));
+  T('iSPN activation  →',120,262,{size:32,c:C.ispn,a:seg(u,3.37,4)});
+  const on=[seg(u,11.39,11.9),seg(u,12.73,13.2),seg(u,14.21,14.7),seg(u,16.45,16.9)],pre=seg(u,9.17,9.8);
+  const out=[['turned harder'],['walked away','from the lever'],['skipped ahead','in a sequence'],['licked the','other spout']],
+    ref=['Tecuapetla et al. 2014','Tecuapetla et al. 2016','Geddes et al. 2018','Lee & Sabatini 2021'],y0=300;
+  [330,750,1170,1590].forEach((x,i)=>{const a=Math.max(pre*.0,on[i]);panel(x-190,y0,380,560,pre,pulse(u,[11.39,12.73,14.21,16.45][i],[12.73,14.21,16.45,18.6][i]),C.ispn);
+    if(a<=0)return;const cy=y0+200;
+    if(i===0){ctx.save();ctx.translate(x,cy);ctx.rotate(-.5*a);mhead(0,-20,62,a,{noSpout:1});ctx.restore();curvArrow(x,cy,125,-2.4,-0.5,C.ispn,6,a);}
+    if(i===1){rect(x-150,cy-60,22,120,C.mute,a,6);T('lever',x-139,cy+100,{size:24,c:C.mute,align:'center',a});
+      mhead(x+80*a,cy-40,50,a,{noSpout:1});arrow(x-20,cy+90,x+130,cy+90,C.ispn,6,a);}
+    if(i===2){['L','L','R','R'].forEach((s,k)=>{const xx=x-135+k*90;rect(xx-30,cy-10,60,60,k<1?'#2a3350':'#1f2740',a,12);
+        T(s,xx,cy+31,{size:30,w:600,c:k===1?C.mute:C.ink,align:'center',a});});
+      xmark(x-45,cy+20,13,C.A,a*.85);
+      ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=C.ispn;ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();
+      ctx.moveTo(x-135,cy-20);ctx.quadraticCurveTo(x-45,cy-130,x+45,cy-24);ctx.stroke();ctx.restore();arrow(x+30,cy-44,x+45,cy-22,C.ispn,6,a);}
+    if(i===3){mhead(x,cy-70,62,a,{lickR:1});xmark(x+.32*62,cy-70+1.42*62,16,C.A,a*.85);}
+    out[i].forEach((s,k)=>T(s,x,y0+400+k*40,{size:32,w:600,c:C.ink,align:'center',a}));
+    T(ref[i],x,y0+500,{size:22,c:C.mute,align:'center',a});});
+}};
+
+const scenes = [
+{ name:'Title', dur:13.82, draw(u){
+  T('From avoidance',120,330,{f:DISP,size:104});
+  T('to new action',120,450,{f:DISP,size:104});
+  T('The multifaceted role of the',120,560,{f:DISP,size:62,a:seg(u,.3,1.2)});
+  T('striatal indirect pathway',120,636,{f:DISP,size:62,it:true,a:seg(u,.5,1.4)});
+  T('Jaeeon Lee & Bernardo L. Sabatini',120,740,{size:34,a:seg(u,.9,1.9)});
+  T('Nature Reviews Neuroscience (2025) · Perspective',120,790,{size:28,c:C.mute,a:seg(u,1.2,2.2)});
+  // motif: an iSPN stops action A (with "stop doing what no longer works"), then a new action B opens ("keep searching")
+  const ap=seg(u,.6,1.6),cx=1460,cy=560;
+  neuron(cx-150,cy,7,C.ispn,ap,lin(u,.6,2.6),1.25,u);
+  const pa=seg(u,2.2,2.9);rect(cx+60,cy-150,250,84,'#2a1a20',pa,42);T('action A',cx+185,cy-98,{size:32,w:600,c:C.ink,align:'center',a:pa});
+  inhib(cx-110,cy-30,cx+50,cy-108,C.ispn,6,ap,lin(u,3.2,4.2));
+  xmark(cx+185,cy-108,30,C.A,seg(u,4.3,4.6),lin(u,4.3,4.9));
+  const pb=seg(u,5.9,6.6);rect(cx+60,cy+66,250,84,C.sc,pb*.9,42);T('action B',cx+185,cy+118,{size:32,w:600,c:'#0e1320',align:'center',a:pb});
+  arrow(cx-110,cy+30,cx+48,cy+108,C.sc,6,pb,lin(u,5.9,6.9));
+  T('avoid',cx+330,cy-98,{f:DISP,size:44,it:true,c:C.A,a:seg(u,4.6,5.2)});
+  T('explore',cx+330,cy+118,{f:DISP,size:44,it:true,c:C.sc,a:seg(u,6.9,7.5)});
+}},
+{ name:'Two pathways', dur:10.44, draw(u){
+  header(1,'','Two pathways out of the striatum',u);
+  const ap=seg(u,.3,1.1),sx=420,sy=620;
+  ellipse(sx,sy,250,300,'#141b2c',ap,'#2c3550',3);T('striatum',sx,sy+344,{size:28,c:C.mute,align:'center',a:ap});
+  [[250,420,11],[600,500,12],[300,850,13],[570,820,14],[230,640,15]].forEach(([x,y,sd],i)=>neuron(x,y,sd,i%2?C.ispn:C.dspn,ap*.22,1,.55,u));
+  const da=seg(u,3.08,3.7),ia=seg(u,6.42,7.0);
+  neuron(400,480,3,C.dspn,Math.max(ap*.5,da),lin(u,.5,2.4),1,u,[[540,470],[640,452]],lin(u,3.1,3.8));
+  neuron(430,790,7,C.ispn,Math.max(ap*.5,ia),lin(u,.8,2.8),1,u,[[570,800],[650,808]],lin(u,6.5,7.2));
+  T('dSPN',590,436,{size:28,w:600,c:C.dspn,a:da});T('iSPN',600,770,{size:28,w:600,c:C.ispn,a:ia});
+  T('direct pathway',870,400,{size:30,c:C.dspn,align:'center',a:da});
+  T('indirect pathway',870,770,{size:30,c:C.ispn,align:'center',a:ia});
+  arrow(660,450,1090,410,C.dspn,6,da,lin(u,3.3,4.1));arrow(660,808,1090,800,C.ispn,6,ia,lin(u,6.6,7.4));
+  const g=seg(u,4.0,4.6),s=seg(u,7.3,7.9);
+  rect(1120,350,330,120,C.dspn,g,60);T('promote',1285,413,{f:DISP,size:56,align:'center',base:'middle',c:'#0e1320',a:g});
+  rect(1120,740,330,120,C.ispn,s,60);T('suppress',1285,803,{f:DISP,size:56,align:'center',base:'middle',c:'#0e1320',a:s});
+  // the action they act on
+  const ac=seg(u,4.2,4.9);rect(1560,555,240,110,'#1c2438',ac,20);T('action',1680,622,{f:DISP,size:50,align:'center',c:C.ink,a:ac});
+  arrow(1450,430,1600,550,C.dspn,5,g,lin(u,4.4,5));inhib(1450,780,1610,672,C.ispn,5,s,lin(u,7.6,8.2));
+}},
+SC_models,
+SC_coexist,
+{ name:'Dopamine dips', dur:19.66, draw(u){
+  header(4,'','What strengthens an iSPN synapse?',u);
+  tag('published · refs 25, 26','published',seg(u,9.7,10.4));
+  const ap=seg(u,.4,1.2),sx=520,sy=600;
+  const dipP=lin(u,9.68,15.8);                     // trace cursor 0..1
+  const daLvl=x=>.62-.5*bump(x,.5,.09)*(x>.38&&x<.62?1:bump(x,.5,.09));
+  const dipNow=1-clamp((daLvl(dipP)-.12)/.5);        // 0 at baseline .. 1 at the bottom of the dip
+  const ltp=seg(u,15.9,17.2);
+  // dendrite, spine, presynaptic bouton
+  line([[150,820],[900,820]],'#c56f6c',26,ap);
+  const hr=58+22*ltp;ctx.save();ctx.globalAlpha*=ap;ctx.fillStyle='#c56f6c';ctx.beginPath();ctx.moveTo(sx-14,820);ctx.lineTo(sx-12,sy+hr*.6);ctx.lineTo(sx+12,sy+hr*.6);ctx.lineTo(sx+14,820);ctx.fill();ctx.restore();
+  circle(sx,sy,hr,'#d9827e',ap);if(ltp>0)glow(sx,sy,hr*2.2,'rgba(245,169,72,0.6)',ap*ltp*(.6+.3*Math.sin(u*4)));
+  ellipse(sx,sy-hr-58,90,46,'#56607a',ap);T('input',sx,sy-hr-48,{size:24,c:C.ink,align:'center',a:ap});
+  T('iSPN spine',sx+hr+30,sy+10,{size:26,c:C.ispn,a:ap});T('dendrite',170,880,{size:24,c:C.mute,a:ap});
+  // D2 receptors on the spine head; bound (lit) while dopamine is at baseline
+  const rA=seg(u,4.14,4.8),bound=1-dipNow;
+  for(let i=0;i<5;i++){const t=Math.PI*(.95+i*.22),x=sx+Math.cos(t)*hr,y=sy+Math.sin(t)*hr;
+    ctx.save();ctx.globalAlpha*=rA;ctx.translate(x,y);ctx.rotate(t+Math.PI/2);ctx.strokeStyle=mixC('#6d5a80',C.da,bound);ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-16);ctx.moveTo(0,-16);ctx.lineTo(-9,-27);ctx.moveTo(0,-16);ctx.lineTo(9,-27);ctx.stroke();ctx.restore();
+    if(bound>.5)circle(x+Math.cos(t)*30,y+Math.sin(t)*30,7,C.da,rA*bound);}
+  T('D2 receptors',sx-hr-40,sy-hr+6,{size:26,c:C.da,align:'right',a:rA});
+  // dopamine at baseline: a cloud of dots around the spine (thins out during the dip)
+  const ca=seg(u,6.77,7.4);for(let i=0;i<34;i++){const ang=rnd(i)*6.28+u*.25*(rnd(i+5)-.5),rr=hr+40+rnd(i+9)*120;
+    circle(sx+Math.cos(ang)*rr,sy+Math.sin(ang)*rr*.8,5,C.da,ca*.7*(rnd(i+3)<1-dipNow*1.05?1:0));}
+  T('baseline dopamine keeps D2 on',150,300,{size:30,c:C.da,a:ca*(1-seg(u,11,11.8))});
+  // PKA readout
+  const pk=clamp(lin(u,13.0,14.2)*(1-.4*seg(u,17,19))),pa=seg(u,9.9,10.6);
+  rect(150,250+80,280,64,mixC('#2a3040',C.ispn,pk),pa*Math.max(.8,1-ca*0),32);
+  T(pk>.5?'PKA on':'PKA off',290,372,{size:30,w:600,align:'center',c:pk>.5?'#0e1320':C.mute,a:pa});
+  T('long-term potentiation',sx,sy+hr+210,{f:DISP,size:44,it:true,c:C.st,align:'center',a:ltp});
+  // traces (schematic): dopamine dips below baseline, then PKA in iSPNs rises
+  const x0=1120,x1=1760,ta=seg(u,9.68,10.3);
+  axes(x0,x1,520,200,ta);axes(x0,x1,860,200,ta);
+  line([[x0,520-.62*200],[x1,520-.62*200]],C.mute,2,ta*.6,[6,8]);T('baseline',x1,520-.62*200-12,{size:22,c:C.mute,align:'right',a:ta});
+  trace(x0,x1,520,200,daLvl,C.da,5,ta,dipP);
+  const pka=x=>.12+.7*ease((x-.47)/.13)*Math.exp(-Math.max(0,x-.6)/.35);
+  trace(x0,x1,860,200,pka,C.ispn,5,ta,dipP);
+  T('dopamine',x0,300,{size:28,w:600,c:C.da,a:ta});T('PKA in iSPNs',x0,640,{size:28,w:600,c:C.ispn,a:ta});
+  const dd=seg(u,11.6,12.2);const [dx,dy]=[lerp(x0,x1,.5),520-.12*200];T('dip',dx,dy+50,{size:26,c:C.da,align:'center',a:dd});
+  cite('Lee et al., Nature 2021 · Iino et al., Nature 2020 · traces schematic',x0,960,ta);
+}},
+SC_rule,
+SC_stop,
+SC_pred,
+SC_dips,
+SC_modules,
+SC_new,
+{ name:'Collicular competition', dur:16.69, draw(u){
+  header(11,'','Suppress one action, release another',u);
+  tag('our proposal','proposal',seg(u,3.22,3.8));
+  const y=560,ap=seg(u,.4,1.1);
+  const nI=seg(u,6.31,6.9),nG=seg(u,7.3,7.8),nS=seg(u,8.9,9.4),tgt=seg(u,11.3,11.8),cmp=seg(u,13.66,14.2),scA=seg(u,3.22,3.9);
+  const EX='rgba(240,84,79,0.24)',SU='rgba(69,146,220,0.24)';
+  const box=(x,w,col,a,lab)=>{rect(x-w/2,y-70,w,140,col,a,16);T(lab,x,y+120,{size:28,w:600,c:C.ink,align:'center',a:ap});};
+  box(300,150,EX,nI,'iSPN');box(600,150,SU,nG,'GPe');box(900,150,EX,nS,'SNr');
+  ball(300,y,34,C.ispn,ap,nI);ball(600,y,34,'#9aa3b8',ap);ball(900,y,34,'#f2c94c',ap,nS);
+  inhib(340,y,556,y,C.ispn,6,ap,lin(u,6.5,7.2));inhib(640,y,856,y,'#9aa3b8',6,ap,lin(u,7.5,8.2));
+  // superior colliculus: two competing motor programmes with mutual inhibition
+  rect(1130,330,300,460,'#161d30',scA,20);T('superior colliculus',1280,830,{size:28,w:600,c:C.sc,align:'center',a:scA});
+  rect(1150,350,260,170,EX,cmp,14);rect(1150,600,260,170,SU,tgt,14);
+  ball(1280,435,34,C.sc,scA,cmp);ball(1280,685,34,C.sc,scA,0);
+  inhib(940,y+20,1240,670,'#f2c94c',6,ap,lin(u,9.3,11.3));
+  const mi=lin(u,3.6,5);line([[1230,470],[1200,560],[1230,650]],C.ink,4,scA*mi);line([[1330,650],[1360,560],[1330,470]],C.ink,4,scA*mi);
+  if(mi>.95){inhib(1200,560,1232,652,C.ink,4,scA,1);inhib(1360,560,1328,468,C.ink,4,scA,1);}
+  T('mutual inhibition',1280,322,{size:22,c:C.mute,align:'center',a:scA*seg(u,4.6,5.2)});
+  // outputs
+  arrow(1320,685,1480,685,C.sc,5,scA,1);arrow(1320,435,1480,435,C.sc,5,scA,1);
+  T('target action',1500,695,{size:32,w:600,c:C.ink,a:scA*(1-.5*tgt)});xmark(1400,685,24,C.A,tgt,lin(u,11.4,12));
+  T('competing motor',1500,428,{size:32,w:600,c:cmp>.5?C.sc:C.ink,a:scA});T('programme',1500,466,{size:32,w:600,c:cmp>.5?C.sc:C.ink,a:scA});
+  glow(1600,440,180,'rgba(189,99,209,0.6)',cmp*(.6+.3*Math.sin(u*4)));
+  rect(300,860,26,26,C.A,ap*seg(u,6.4,7)*.55,4);T('excited',336,882,{size:24,c:C.mute,a:ap*seg(u,6.4,7)});
+  rect(460,860,26,26,C.B,ap*seg(u,7.4,8)*.55,4);T('suppressed',496,882,{size:24,c:C.mute,a:ap*seg(u,7.4,8)});
+  cite('after Fig. 5a · circuit from Lee & Sabatini, Nature 2021',1800,960,seg(u,6.5,7.1),'right');
+}},
+{ name:'Next experiments', dur:15.26, draw(u){
+  header(12,'','How to test it',u);
+  tag('proposed experiments','proposed',seg(u,.5,1.1));
+  const cards=[[3.03,'Recreate the rule in vivo','silence dopamine with a cue + an action;','look for LTP in iSPNs'],
+               [8.38,'Track fine movements','after removing iSPNs, with high-speed','video and pose tracking'],
+               [11.39,'Distinct actions','a task with action A or B: does','suppressing A launch B?']];
+  cards.forEach(([t0,ttl,l1,l2],i)=>{const a=seg(u,t0,t0+.6),x=150+i*560,y=300+(1-a)*20;
+    rect(x,y,500,560,'#161d30',a,22);T(ttl,x+40,y+470,{size:32,w:600,a});T(l1,x+40,y+512,{size:24,c:C.mute,a});T(l2,x+40,y+544,{size:24,c:C.mute,a});
+    const cx=x+250,cy=y+220,k=lin(u,t0+.4,t0+3.4);
+    if(i===0){ // DA neuron off + cue + action -> spine grows
+      ball(cx-130,cy-80,30,C.da,a);xmark(cx-130,cy-80,22,C.ink,a*seg(k,0,.2),seg(k,0,.3));T('DA off',cx-130,cy-26,{size:22,c:C.da,align:'center',a});
+      pill(cx+30,cy-110,'cue',C.st,a*seg(k,.15,.35));pill(cx+30,cy-30,'action',C.eff,a*seg(k,.3,.5));
+      line([[cx-160,cy+150],[cx+160,cy+150]],'#c56f6c',18,a);line([[cx,cy+150],[cx,cy+90]],'#c56f6c',12,a);
+      circle(cx,cy+70,26+16*seg(k,.6,1),'#d9827e',a);T('LTP?',cx+70,cy+82,{size:28,it:true,c:C.st,a:a*seg(k,.7,1)});}
+    if(i===1){ // a paw trajectory with tracked points
+      const P=[];for(let j=0;j<=40;j++){const s=j/40;P.push([cx-150+300*s,cy+60-150*Math.sin(Math.PI*s)+20*Math.sin(s*9)]);}
+      line(P.slice(0,Math.max(2,Math.round(41*k))),C.laser,4,a);
+      for(let j=0;j<=40;j+=5)if(j/40<=k)circle(P[j][0],P[j][1],8,C.warn,a);
+      circle(cx-150,cy+60,14,C.mute,a);T('paw',cx-150,cy+110,{size:22,c:C.mute,align:'center',a});}
+    if(i===2){ // iSPN suppresses A; does B emerge?
+      ball(cx-140,cy,30,C.ispn,a,seg(k,.1,.3));
+      rect(cx+10,cy-120,150,70,'#2a1a20',a,35);T('A',cx+85,cy-74,{size:34,w:600,align:'center',a});
+      inhib(cx-105,cy-15,cx,cy-82,C.ispn,5,a,seg(k,.1,.4));xmark(cx+85,cy-85,22,C.A,a*seg(k,.4,.5),seg(k,.4,.6));
+      rect(cx+10,cy+50,150,70,C.sc,a*seg(k,.6,.8),35);T('B ?',cx+85,cy+96,{size:34,w:600,align:'center',c:'#0e1320',a:a*seg(k,.6,.8)});
+      arrow(cx-105,cy+15,cx,cy+82,C.sc,5,a*seg(k,.55,.7),seg(k,.55,.8));}
+  });
+}},
+{ name:'In short', dur:24.38, draw(u){
+  header(13,'','In short',u);
+  const pts=[[1.44,'Dopamine dips teach iSPNs which actions to avoid.',C.da],[5.93,'iSPN activity can launch an alternative action.',C.sc]];
+  pts.forEach(([t0,s,c],i)=>{const a=seg(u,t0,t0+.6),y=340+i*110;T(String(i+1),120,y,{f:DISP,size:60,c,a});T(s,190,y-8,{size:40,a});});
+  const na=seg(u,8.28,9);rect(120,610,1060,4,C.ispn,na,2);
+  T('Avoid and explore,',120,700,{f:DISP,size:60,a:na});
+  T('at the same time.',120,776,{f:DISP,size:60,it:true,c:C.sc,a:seg(u,8.8,9.5)});
+  const qa=seg(u,11.46,12.3);
+  qr(1380,300,400,qa);
+  T('Read the Perspective',1580,760,{size:32,w:600,align:'center',a:qa});
+  T('Nature Reviews Neuroscience (2025)',1580,802,{size:24,c:C.mute,align:'center',a:qa});
+  T('click or scan',1580,846,{size:28,w:600,c:C.ispn,align:'center',a:qa});
+  T('Jaeeon Lee & Bernardo L. Sabatini · HHMI · Harvard Medical School · Harvard University',120,975,{size:24,c:C.mute,a:seg(u,13,14)});
+  T('Music by Vincent Rubinetti',1800,975,{size:24,c:C.mute,align:'right',a:seg(u,13,14)});
+}}];
+
+// narration timing: per scene, sentence start times (s) in the audio
+const NARR=[{"dur": 13.82, "sent": [2.0, 8.4]}, {"dur": 10.44, "sent": [0.5, 3.08, 6.42]}, {"dur": 17.87, "sent": [0.5, 4.13, 8.83, 12.33]}, {"dur": 12.25, "sent": [0.5, 2.27, 6.79]}, {"dur": 19.66, "sent": [0.5, 4.14, 9.68]}, {"dur": 16.12, "sent": [0.5, 3.41]}, {"dur": 19.81, "sent": [0.5, 5.53, 11.84]}, {"dur": 15.89, "sent": [0.5, 2.31, 9.79]}, {"dur": 15.72, "sent": [0.5, 3.99, 8.88]}, {"dur": 9.45, "sent": [0.5]}, {"dur": 19.02, "sent": [0.5, 3.37, 9.17, 11.39]}, {"dur": 16.69, "sent": [0.5, 3.22, 6.31]}, {"dur": 15.26, "sent": [0.5]}, {"dur": 24.38, "sent": [0.5, 11.46]}];
+const CUES=NARR.map(n=>n.sent);  // identity warp: scene code runs on the audio clock (times in scenes.js are audio times)
+const SUBS=[[2.0, 5.37, "To learn well, an animal has to stop doing what no longer works,"], [5.88, 7.75, "and still keep searching for something better."], [8.4, 10.4, "In this Perspective, we ask how the"], [10.4, 12.57, "striatal indirect pathway can do both."], [14.32, 16.64, "The striatum has two main output pathways."], [16.9, 19.43, "Direct-pathway neurons promote actions."], [20.24, 21.56, "Indirect-pathway neurons are"], [21.56, 23.31, "classically thought to suppress them."], [24.76, 27.61, "Three models describe what indirect-pathway neurons do."], [28.39, 29.9, "In the center-surround model,"], [30.06, 32.18, "they inhibit every competing motor program."], [33.09, 35.88, "In the refinement model, they sharpen the chosen movement."], [36.59, 38.02, "In the competitive model, they oppose the"], [38.34, 40.88, "direct pathway for control of behavior."], [42.63, 44.0, "These views can coexist."], [44.4, 46.28, "Where a direct and an indirect neuron"], [46.28, 48.32, "share a target in the SNr, they compete."], [48.92, 50.24, "Where their targets differ,"], [50.36, 53.13, "the indirect neuron refines the movement instead."], [54.88, 57.54, "What strengthens an indirect-pathway synapse?"], [58.52, 60.92, "These neurons carry D2 dopamine receptors,"], [61.15, 63.22, "which baseline dopamine keeps switched on."], [64.06, 67.77, "Recent studies found that when dopamine dips below baseline,"], [67.77, 69.9, "PKA turns on in these neurons,"], [70.02, 73.09, "and their synapses can undergo long-term potentiation."], [74.54, 77.22, "Building on this, we propose a three-factor learning rule."], [77.45, 81.27, "A synapse carrying the state, such as a sensory cue,"], [81.35, 84.5, "is strengthened only when three signals coincide:"], [84.7, 87.66, "a dopamine dip, an efference copy of the action,"], [87.96, 88.91, "and the state itself."], [90.66, 92.38, "Picture a mouse that has learned to"], [92.47, 94.87, "lick the left spout after tone A."], [95.69, 98.75, "When the reward stops, dopamine dips on trials two and three,"], [98.85, 101.29, "while the tone and the lick are both present."], [102.0, 105.43, "The tone's synapse onto the indirect neuron is strengthened,"], [105.57, 108.32, "and by trial four, that neuron suppresses the lick."], [110.47, 111.69, "The rule makes predictions."], [112.28, 115.42, "Indirect-pathway neurons should be active at movement onset,"], [115.81, 116.98, "carrying the efference copy,"], [117.49, 119.11, "and many studies find that they are."], [119.76, 122.62, "And the learned memory should be stored in the state synapses,"], [123.21, 124.91, "not in the efference copy synapses."], [126.36, 129.44, "Dopamine dips are not uniform across the striatum."], [129.85, 132.22, "In a pellet-reaching task, a missed grab dips"], [132.22, 134.49, "dopamine only in the dorsolateral striatum."], [134.74, 137.76, "In an odor task, a small reward dips it in"], [137.85, 140.33, "the dorsomedial and ventral striatum instead."], [142.08, 144.71, "So each striatal domain could work as its own"], [144.71, 147.88, "reinforcement-learning module, with its own teaching signal,"], [147.96, 150.08, "efference copy, and state input."], [151.53, 153.88, "But suppressing an action is only half the job."], [154.4, 157.35, "In four studies, activating indirect-pathway"], [157.35, 159.77, "neurons did more than stop behavior."], [160.2, 161.4, "It triggered a new action."], [162.42, 164.89, "Mice turned harder, walked away from a lever,"], [165.24, 168.6, "skipped ahead in a lever sequence, or licked the other spout."], [170.55, 172.53, "How could suppression create a new action?"], [173.27, 175.34, "We propose competition downstream."], [176.36, 179.29, "Relayed through the GPe and the SNr, indirect-pathway activity"], [179.37, 183.18, "suppresses the target action in the superior colliculus,"], [183.71, 185.09, "and releases a competing one."], [187.24, 191.12, "Testing these ideas will need new experiments: pairing dopamine"], [191.12, 194.71, "silencing with a cue and an action to induce plasticity in vivo,"], [195.12, 197.64, "tracking fine movements after losing these neurons,"], [198.13, 201.05, "and tasks with categorically distinct actions."], [202.5, 206.13, "In short, dopamine dips teach indirect-pathway neurons which"], [206.13, 209.88, "actions to avoid, and their activity can launch an alternative,"], [209.99, 212.97, "so animals can avoid and explore at the same time."], [213.46, 215.71, "To read the Perspective in Nature Reviews"], [215.82, 218.33, "Neuroscience, click the link in the video."]];
+let acc=0;scenes.forEach((s,i)=>{s.vdur=s.dur;s.dur=NARR[i].dur;s.start=acc;acc+=s.dur;
+  const k=[[0,0]];NARR[i].sent.forEach((st,j)=>k.push([st,Math.max(CUES[i][j],k[k.length-1][1])]));k.push([s.dur,Math.max(s.vdur,k[k.length-1][1])]);s.knots=k;});
+const DUR=acc,OUTRO=2.5;
+function warp(s,u){const k=s.knots;for(let i=1;i<k.length;i++)if(u<=k[i][0]){const [a,va]=k[i-1],[b,vb]=k[i];return lerp(va,vb,b>a?(u-a)/(b-a):1);}return k[k.length-1][1];}
+
+function render(t){
+  ctx.setTransform(SC,0,0,SC,0,0);ctx.globalAlpha=1;ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
+  // dot grid
+  ctx.fillStyle=C.grid;for(let x=60;x<W;x+=60)for(let y=60;y<H;y+=60)ctx.fillRect(x-1.5,y-1.5,3,3);
+  const s=scenes.find(s=>t>=s.start&&t<s.start+s.dur)||scenes[scenes.length-1];
+  const u=t-s.start;const fade=.45;
+  const isFirst=s===scenes[0],isLast=s===scenes[scenes.length-1];
+  ctx.globalAlpha=Math.min(isFirst?1:clamp(u/fade),isLast?1:clamp((s.dur-u)/fade));
+  s.draw(warp(s,u),s.vdur);ctx.globalAlpha=1;
+  // subtitles (subs_inject.py): one line in a dark band at the bottom; C toggles them
+  if(window.__subs!==false){let q=null;for(const x of SUBS)if(t>=x[0]&&t<x[1]+.35)q=x;if(q){const a=clamp((t-q[0])/.12)*clamp((q[1]+.35-t)/.15);  // the latest line wins
+    ctx.save();ctx.font=`400 32px ${SANS}`;const w=ctx.measureText(q[2]).width+44;ctx.restore();
+    rect(960-w/2,1024,w,46,'rgba(6,8,14,0.78)',a,10);T(q[2],960,1057,{size:32,c:'#f3f5fa',align:'center',a});}}
+  // progress hairline
+  ctx.fillStyle=C.faint;ctx.fillRect(0,H-6,W,6);ctx.fillStyle=C.ispn;ctx.fillRect(0,H-6,W*t/DUR,6);
+  const out=seg(t,DUR-OUTRO,DUR);if(out>0){ctx.fillStyle=`rgba(5,7,12,${out})`;ctx.fillRect(0,0,W,H);}
+}
+window.__render=render;window.__DUR=DUR;
+
+// ---------- player ----------
+const scrub=document.getElementById('scrub'),timeEl=document.getElementById('time'),playBtn=document.getElementById('play'),icon=document.getElementById('icon'),chapEl=document.getElementById('chapters');
+const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='chap';b.id='chap'+i;b.innerHTML=`<b>${i?String(i).padStart(2,'0'):'—'}</b>${s.name}`;b.onclick=()=>{t=s.start+.01;seek=true;draw();};chapEl.appendChild(b);});
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t=0,playing=false,last=null,seek=false; // seek: the viewer moved the film, so move the audio too // starts once we know whether the browser lets audio play
+function setIcon(){icon.innerHTML=playing?'<rect x="2" y="1" width="3.5" height="12"/><rect x="8.5" y="1" width="3.5" height="12"/>':'<path d="M3 1 L13 7 L3 13 Z"/>';playBtn.setAttribute('aria-label',playing?'Pause':'Play');}
+// until the web fonts have loaded, show only the empty stage (otherwise the title flashes in a fallback font, then jumps)
+function draw(){if(!window.__ready){ctx.setTransform(SC,0,0,SC,0,0);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);return;}render(t);scrub.value=Math.round(t/DUR*1000);timeEl.textContent=`${fmt(t)} / ${fmt(DUR)}`;
+  scenes.forEach((s,i)=>document.getElementById('chap'+i).setAttribute('aria-current',t>=s.start&&t<s.start+s.dur?'true':'false'));}
+const au=document.getElementById('narr'),soundBtn=document.getElementById('sound'),big=document.getElementById('bigplay');au.muted=false;
+// sound is on by default; if the browser blocks audio before a click, hold the film at its start behind a play-with-sound button
+const showBig=on=>{big.hidden=!on;};let blocked=false;
+// volume: the mix is about -16 LUFS, so start at half amplitude (-6 dB); the slider is perceptual (volume = slider squared)
+// and each viewer's level is remembered. iOS ignores audio.volume, so the slider hides there and the device keys do it.
+const volEl=document.getElementById('volume'),volIcon=document.getElementById('volicon'),VOL0=.7;let vol=VOL0;
+try{const v=parseFloat(localStorage.getItem('motion-abstract-volume'));if(v>=0&&v<=1)vol=v;}catch(e){}
+function setVol(v,save){vol=Math.min(1,Math.max(0,v));au.volume=vol*vol;volEl.value=Math.round(vol*100);soundLabel();
+  if(save)try{localStorage.setItem('motion-abstract-volume',String(vol));}catch(e){}}
+function soundLabel(){const off=au.muted||vol===0,w1='<path d="M10.3 6a2.8 2.8 0 0 1 0 4"/>',w2='<path d="M12.3 4a5.6 5.6 0 0 1 0 8"/>';
+  volIcon.innerHTML='<path class="spk" d="M2 6h2.5L8 3v10L4.5 10H2z"/>'+(off?'<path d="M11 6l4 4M15 6l-4 4"/>':vol>.45?w1+w2:w1);
+  soundBtn.setAttribute('aria-label',off?'Unmute':'Mute');soundBtn.title=(off?'Unmute':'Mute')+' (M)';}
+function syncAudio(){try{if(playing){if(seek||(au.paused&&Math.abs(au.currentTime-t)>.3)){au.currentTime=t;seek=false;}if(au.paused&&!blocked)au.play().catch(()=>{if(!au.muted){blocked=true;playing=false;setIcon();showBig(true);}});}else if(!au.paused)au.pause();}catch(e){}}
+setVol(vol);if(au.volume===1&&vol<1)volEl.hidden=true;
+volEl.oninput=()=>{setVol(volEl.value/100,true);if(vol>0&&au.muted){au.muted=false;blocked=false;soundLabel();syncAudio();}};
+soundBtn.onclick=()=>{if(vol===0){au.muted=false;setVol(VOL0,true);}else au.muted=!au.muted;blocked=false;soundLabel();if(!au.muted&&!playing)toggle();syncAudio();};
+big.onclick=e=>{e.stopPropagation();au.muted=false;blocked=false;soundLabel();if(!playing)toggle();syncAudio();};
+const REST=()=>DUR-OUTRO-.01;
+// the audio is the master clock while it plays (re-seeking it to follow the frames made the sound choppy on iPhone)
+// audio.currentTime only updates in coarse steps in some browsers, so the film runs on frame time and is steered gently toward the
+// audio position (extrapolated between its updates); it only snaps when they are > 0.3 s apart. The audio itself is never re-seeked.
+let aT=-1,aStamp=0;
+function loop(ts){if(playing){t+=last!=null?Math.min(.1,(ts-last)/1000):0;
+  if(!seek&&!au.paused&&!au.seeking&&au.readyState>=2){const c=au.currentTime;if(c!==aT){aT=c;aStamp=ts;}const e=aT+(ts-aStamp)/1000-t;if(Math.abs(e)>.3)t+=e;else t+=e*.08;}if(t>=DUR){t=REST();playing=false;setIcon();}}last=ts;syncAudio();draw();requestAnimationFrame(loop);}
+function toggle(){playing=!playing;if(playing){blocked=false;showBig(false);if(t>=REST()-.05){t=0;seek=true;}}setIcon();}
+window.__pause=()=>{playing=false;setIcon();showBig(false);}; // for the frame exporters
+// the QR code on the closing slide is also a link to the paper
+const PAPER='https://www.nature.com/articles/s41583-025-00925-2',stage=document.getElementById('stage');
+function overQR(e){const last=scenes[scenes.length-1];if(t<last.start+NARR[NARR.length-1].sent[1]+.5)return false;const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;return x>=1380&&x<=1780&&y>=300&&y<=845;}
+playBtn.onclick=toggle;stage.onclick=e=>{if(overQR(e)){window.open(PAPER,'_blank','noopener');return;}toggle();};
+stage.onmousemove=e=>{stage.style.cursor=overQR(e)?'pointer':'';};
+// full screen: the real Fullscreen API where it exists, otherwise a fixed full-window stage
+const fsBtn=document.getElementById('fs'),fsx=document.getElementById('fsx');
+const isFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement)||stage.classList.contains('is-full');
+function setFull(on){if(on===isFull())return;const req=stage.requestFullscreen||stage.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
+  const apiFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  if(on){const p=req?req.call(stage):null;if(!req)stage.classList.add('is-full');else if(p&&p.catch)p.catch(()=>stage.classList.add('is-full'));
+    // some embedded browsers never answer the request: fall back to filling the window
+    setTimeout(()=>{if(!apiFull())stage.classList.add('is-full');fit();fsLabel();},700);}
+  else{stage.classList.remove('is-full');if(apiFull()&&ex)ex.call(document);}
+  setTimeout(()=>{fit();fsLabel();},60);}
+function fsLabel(){fsBtn.setAttribute('aria-label',isFull()?'Exit full screen':'Full screen');}
+fsBtn.onclick=()=>setFull(!isFull());fsx.onclick=e=>{e.stopPropagation();setFull(false);};
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{fit();fsLabel();}));
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='f'||e.key==='F'){e.preventDefault();setFull(!isFull());}else if(e.key==='m'||e.key==='M'){e.preventDefault();soundBtn.click();}else if(e.key==='Escape'&&stage.classList.contains('is-full'))setFull(false);});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='c'||e.key==='C'){window.__subs=window.__subs===false;draw();}});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='BUTTON'){e.preventDefault();toggle();}});
+scrub.oninput=()=>{t=scrub.value/1000*DUR;seek=true;draw();};
+if(reduce)t=DUR-OUTRO-.01;
+// match the canvas backing store to its on-screen size so text and lines stay sharp on high-density screens
+function fit(){const r=cv.getBoundingClientRect();const k=Math.min(2,Math.max(1,r.width*(window.devicePixelRatio||1)/W));
+  if(Math.abs(k-SC)>.01){SC=k;cv.width=Math.round(W*k);cv.height=Math.round(H*k);draw();}}
+if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);addEventListener('resize',fit);fit();
+setIcon();
+artReady.then(()=>document.fonts?document.fonts.ready:null).then(()=>Promise.all([`400 40px ${DISP}`,`italic 400 40px ${DISP}`,`400 40px ${SANS}`,`600 40px ${SANS}`,`400 40px ${MONO}`].map(f=>document.fonts.load(f).catch(()=>{})))).finally(()=>{window.__ready=true;
+  // try to start with sound; a blocked autoplay leaves the big button up instead (reduced motion: wait for a click)
+  if(reduce)showBig(true);else au.play().then(()=>{playing=true;setIcon();}).catch(()=>showBig(true));
+  requestAnimationFrame(loop);});
+draw();
+</script>
+</body>
+</html>
